@@ -52,18 +52,15 @@ const WindGraphContainer = styled.div`
 
 const AppContent: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const location = searchParams.get("location") || "Unknown Location";
-  const latitude = searchParams.get("lat") || "N/A";
-  const longitude = searchParams.get("lon") || "N/A";
+  const location = searchParams.get("location") || "San Francisco, CA";
+  const latitude = searchParams.get("lat") || "37.7749";
+  const longitude = searchParams.get("lon") || "-122.4194";
   const [forecastData, setForecastData] =
     useState<ForecastGridDataAPIResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const coordinates =
-    latitude !== "N/A" && longitude !== "N/A"
-      ? `(${latitude}, ${longitude})`
-      : "";
+  const coordinates = `(${latitude}, ${longitude})`;
 
   const fetchForecastData = async (forecastGridDataUrl: string) => {
     try {
@@ -86,8 +83,6 @@ const AppContent: React.FC = () => {
   };
 
   const fetchWeatherData = async () => {
-    if (latitude === "N/A" || longitude === "N/A") return;
-
     setLoading(true);
     setError(null);
 
@@ -179,10 +174,6 @@ const AppContent: React.FC = () => {
         const [startTimeStr, durationStr] = windSpeed.validTime.split("/");
         const startTime = new Date(startTimeStr);
         const durationHours = parseISO8601Duration(durationStr);
-
-        console.log(
-          `startTime: ${startTime}, durationHours: ${durationHours}, windSpeed.value: ${windSpeed.value}`
-        );
 
         for (let i = 0; i < durationHours; i++) {
           const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);

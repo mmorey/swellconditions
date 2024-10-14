@@ -12,6 +12,7 @@ import {
   ChartOptions,
   ChartData,
   ScatterController,
+  LineController,
 } from "chart.js";
 
 ChartJS.register(
@@ -20,6 +21,7 @@ ChartJS.register(
   PointElement,
   LineElement,
   ScatterController,
+  LineController,
   Title,
   Tooltip,
   Legend
