@@ -55,9 +55,6 @@ const AppContent: React.FC = () => {
   const location = searchParams.get("location") || "Unknown Location";
   const latitude = searchParams.get("lat") || "N/A";
   const longitude = searchParams.get("lon") || "N/A";
-  const [weatherData, setWeatherData] = useState<WeatherAPIResponse | null>(
-    null
-  );
   const [forecastData, setForecastData] =
     useState<ForecastGridDataAPIResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -106,7 +103,6 @@ const AppContent: React.FC = () => {
       }
 
       const data: WeatherAPIResponse = await response.json();
-      setWeatherData(data);
       await fetchForecastData(data.properties.forecastGridData);
     } catch (e) {
       setError(
