@@ -102,7 +102,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
     scales: {
       x: {
         title: {
-          display: true,
+          display: false,
           text: "Date and Time",
           color: "white",
         },

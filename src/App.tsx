@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import styled from "styled-components";
 import { BrowserRouter, useSearchParams } from "react-router-dom";
-import { WeatherAPIResponse, ForecastGridDataAPIResponse } from "./types";
+import { ForecastGridDataAPIResponse } from "./types";
 import WindGraph from "./WindGraph";
+import { fetchWeatherData } from "./api/weatherApi";
 
 const AppContainer = styled.div`
   background-color: #1a1a1a;
@@ -62,56 +63,25 @@ const AppContent: React.FC = () => {
 
   const coordinates = `(${latitude}, ${longitude})`;
 
-  const fetchForecastData = async (forecastGridDataUrl: string) => {
-    try {
-      setLoading(true);
-      const response = await fetch(forecastGridDataUrl);
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      const data: ForecastGridDataAPIResponse = await response.json();
-      setForecastData(data);
-    } catch (e) {
-      setError(
-        `Failed to fetch forecast data: ${
-          e instanceof Error ? e.message : String(e)
-        }`
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchWeatherData = async () => {
-    setLoading(true);
-    setError(null);
-
-    try {
-      const roundedLat = Number(latitude).toFixed(4);
-      const roundedLon = Number(longitude).toFixed(4);
-      const response = await fetch(
-        `https://api.weather.gov/points/${roundedLat},${roundedLon}`
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data: WeatherAPIResponse = await response.json();
-      await fetchForecastData(data.properties.forecastGridData);
-    } catch (e) {
-      setError(
-        `Failed to fetch weather data: ${
-          e instanceof Error ? e.message : String(e)
-        }`
-      );
-    } finally {
-      setLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchWeatherData();
+    const fetchData = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const data = await fetchWeatherData(latitude, longitude);
+        setForecastData(data);
+      } catch (e) {
+        setError(
+          `Failed to fetch weather data: ${
+            e instanceof Error ? e.message : String(e)
+          }`
+        );
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
   }, [latitude, longitude]);
 
   const findClosestForecast = (
@@ -201,7 +171,9 @@ const AppContent: React.FC = () => {
                       60 *
                       1000
                 );
-                return time >= gustStartTime && time < gustEndTime;
+                const isWithinRange =
+                  time >= gustStartTime && time < gustEndTime;
+                return isWithinRange;
               })?.value || windSpeed.value;
 
             hourlyData.push({
