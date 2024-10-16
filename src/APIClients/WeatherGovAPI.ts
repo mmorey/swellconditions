@@ -1,4 +1,7 @@
-import { WeatherAPIResponse, ForecastGridDataAPIResponse } from "../types";
+import {
+  WeatherGovAPIResponse,
+  ForecastGridDataAPIResponse,
+} from "./WeatherGovTypes";
 
 export const fetchWeatherData = async (
   latitude: string,
@@ -14,7 +17,7 @@ export const fetchWeatherData = async (
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  const data: WeatherAPIResponse = await response.json();
+  const data: WeatherGovAPIResponse = await response.json();
   return fetchForecastData(data.properties.forecastGridData);
 };
 

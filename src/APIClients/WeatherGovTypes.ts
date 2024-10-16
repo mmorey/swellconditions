@@ -1,4 +1,4 @@
-export interface WeatherAPIResponse {
+export interface WeatherGovAPIResponse {
   properties: {
     forecastGridData: string;
   };
