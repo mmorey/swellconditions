@@ -4,13 +4,7 @@ import { BrowserRouter, useSearchParams } from 'react-router-dom';
 import { WeatherData } from './APIClients/WeatherGovTypes';
 import WindGraph from './WindGraph';
 import { fetchWeatherData } from './APIClients/WeatherGovAPI';
-import {
-  parseISO8601Duration,
-  convertTemperature,
-  convertWindSpeed,
-  getWindDirection,
-  getWindArrow,
-} from './utils';
+import { parseISO8601Duration, convertTemperature, convertWindSpeed, getWindDirection, getWindArrow } from './utils';
 
 const AppContainer = styled.div`
   background-color: #171717;
@@ -167,35 +161,23 @@ const AppContent: React.FC = () => {
             const direction =
               windDirectionData.find((dir) => {
                 const dirStartTime = new Date(dir.validTime.split('/')[0]);
-                const dirEndTime = new Date(
-                  dirStartTime.getTime() +
-                    parseISO8601Duration(dir.validTime.split('/')[1]) * 60 * 60 * 1000
-                );
+                const dirEndTime = new Date(dirStartTime.getTime() + parseISO8601Duration(dir.validTime.split('/')[1]) * 60 * 60 * 1000);
                 return time >= dirStartTime && time < dirEndTime;
               })?.value || 0;
 
             const gust =
               windGustData.find((g) => {
                 const gustStartTime = new Date(g.validTime.split('/')[0]);
-                const gustEndTime = new Date(
-                  gustStartTime.getTime() +
-                    parseISO8601Duration(g.validTime.split('/')[1]) * 60 * 60 * 1000
-                );
+                const gustEndTime = new Date(gustStartTime.getTime() + parseISO8601Duration(g.validTime.split('/')[1]) * 60 * 60 * 1000);
                 const isWithinRange = time >= gustStartTime && time < gustEndTime;
                 return isWithinRange;
               })?.value || windSpeed.value;
 
             hourlyData.push({
               time,
-              speed: convertWindSpeed(
-                windSpeed.value,
-                weatherData.forecast.properties.windSpeed.uom
-              ),
+              speed: convertWindSpeed(windSpeed.value, weatherData.forecast.properties.windSpeed.uom),
               direction,
-              gust: convertWindSpeed(
-                gust,
-                weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1'
-              ),
+              gust: convertWindSpeed(gust, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1'),
             });
           }
         }
@@ -212,9 +194,7 @@ const AppContent: React.FC = () => {
       }));
     } catch (error) {
       console.error('Error processing wind data:', error);
-      setError(
-        `Error processing wind data: ${error instanceof Error ? error.message : String(error)}`
-      );
+      setError(`Error processing wind data: ${error instanceof Error ? error.message : String(error)}`);
       return [];
     }
   };
@@ -239,43 +219,18 @@ const AppContent: React.FC = () => {
           <CurrentConditions>
             <CurrentConditionsRow>
               <ConditionColumn>
-                <LargeValue>
-                  {convertTemperature(
-                    weatherData.current.properties.temperature.value,
-                    weatherData.current.properties.temperature.unitCode
-                  ).toFixed(1)}{' '}
-                  °F
-                </LargeValue>
+                <LargeValue>{convertTemperature(weatherData.current.properties.temperature.value, weatherData.current.properties.temperature.unitCode).toFixed(1)} °F</LargeValue>
               </ConditionColumn>
               <ConditionColumn>
-                <LargeValue>
-                  {convertWindSpeed(
-                    weatherData.current.properties.windSpeed.value,
-                    weatherData.current.properties.windSpeed.unitCode
-                  ).toFixed(1)}{' '}
-                  mph
-                </LargeValue>
-                <WindGust>
-                  {convertWindSpeed(
-                    weatherData.current.properties.windGust.value,
-                    weatherData.current.properties.windGust.unitCode
-                  ).toFixed(1)}{' '}
-                  mph gust
-                </WindGust>
+                <LargeValue>{convertWindSpeed(weatherData.current.properties.windSpeed.value, weatherData.current.properties.windSpeed.unitCode).toFixed(1)} mph</LargeValue>
+                <WindGust>{convertWindSpeed(weatherData.current.properties.windGust.value, weatherData.current.properties.windGust.unitCode).toFixed(1)} mph gust</WindGust>
                 <WindDirection>
-                  {getWindDirection(weatherData.current.properties.windDirection.value)}{' '}
-                  {getWindArrow(weatherData.current.properties.windDirection.value)}
+                  {getWindDirection(weatherData.current.properties.windDirection.value)} {getWindArrow(weatherData.current.properties.windDirection.value)}
                 </WindDirection>
               </ConditionColumn>
             </CurrentConditionsRow>
             <ObservationTime>
-              Observed at {weatherData.current.name}{' '}
-              {Math.round(
-                (new Date().getTime() -
-                  new Date(weatherData.current.properties.timestamp).getTime()) /
-                  60000
-              )}{' '}
-              minutes ago
+              Observed at {weatherData.current.name} {Math.round((new Date().getTime() - new Date(weatherData.current.properties.timestamp).getTime()) / 60000)} minutes ago
             </ObservationTime>
           </CurrentConditions>
           <WindGraphContainer>
