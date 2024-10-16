@@ -1,20 +1,26 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { BrowserRouter, useSearchParams } from 'react-router-dom';
-import { ForecastGridDataAPIResponse } from './APIClients/WeatherGovTypes';
+import { WeatherData } from './APIClients/WeatherGovTypes';
 import WindGraph from './WindGraph';
 import { fetchWeatherData } from './APIClients/WeatherGovAPI';
+import {
+  parseISO8601Duration,
+  convertTemperature,
+  convertWindSpeed,
+  getWindDirection,
+  getWindArrow,
+} from './utils';
 
 const AppContainer = styled.div`
-  background-color: #1a1a1a;
+  background-color: #171717;
   min-height: 100vh;
   color: #ffffff;
 `;
 
 const TitleContainer = styled.div`
   width: 100%;
-  background-color: #333;
-  color: #44d7a8;
+  color: #ffffff;
   text-align: center;
   padding: 10px 0;
   position: relative;
@@ -51,12 +57,29 @@ const WindGraphContainer = styled.div`
   margin: 20px auto;
 `;
 
+const CurrentConditions = styled.div`
+  background-color: #1f1f1f;
+  padding: 10px;
+  margin: 20px auto;
+  width: 90%;
+  border-radius: 10px;
+`;
+
+const CurrentConditionsTitle = styled.h3`
+  margin: 0 0 10px 0;
+  color: #44d7a8;
+`;
+
+const CurrentConditionsData = styled.p`
+  margin: 5px 0;
+`;
+
 const AppContent: React.FC = () => {
   const [searchParams] = useSearchParams();
   const location = searchParams.get('location') || 'San Francisco, CA';
   const latitude = searchParams.get('lat') || '37.7749';
   const longitude = searchParams.get('lon') || '-122.4194';
-  const [forecastData, setForecastData] = useState<ForecastGridDataAPIResponse | null>(null);
+  const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,7 +91,7 @@ const AppContent: React.FC = () => {
       setError(null);
       try {
         const data = await fetchWeatherData(latitude, longitude);
-        setForecastData(data);
+        setWeatherData(data);
       } catch (e) {
         setError(`Failed to fetch weather data: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
@@ -79,25 +102,20 @@ const AppContent: React.FC = () => {
     fetchData();
   }, [latitude, longitude]);
 
-  const parseISO8601Duration = (duration: string): number => {
-    const matches = duration.match(/PT(\d+)H/);
-    return matches ? parseInt(matches[1], 10) : 0;
-  };
-
   const processWindData = () => {
-    if (!forecastData) return [];
+    if (!weatherData) return [];
 
     try {
       const now = new Date();
       const twentyFourHoursLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
 
-      const windSpeedData = forecastData.properties.windSpeed.values;
+      const windSpeedData = weatherData.forecast.properties.windSpeed.values;
       if (!Array.isArray(windSpeedData)) {
         throw new Error('Wind speed data is not in the expected format');
       }
 
-      const windDirectionData = forecastData.properties.windDirection?.values || [];
-      const windGustData = forecastData.properties.windGust?.values || [];
+      const windDirectionData = weatherData.forecast.properties.windDirection?.values || [];
+      const windGustData = weatherData.forecast.properties.windGust?.values || [];
 
       const hourlyData: {
         time: Date;
@@ -141,9 +159,15 @@ const AppContent: React.FC = () => {
 
             hourlyData.push({
               time,
-              speed: windSpeed.value * 0.62137119, // Convert km/h to mph
+              speed: convertWindSpeed(
+                windSpeed.value,
+                weatherData.forecast.properties.windSpeed.uom
+              ),
               direction,
-              gust: gust * 0.62137119, // Convert km/h to mph
+              gust: convertWindSpeed(
+                gust,
+                weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1'
+              ),
             });
           }
         }
@@ -182,10 +206,48 @@ const AppContent: React.FC = () => {
       </TitleContainer>
       {loading && <ForecastInfo>Loading weather data...</ForecastInfo>}
       {error && <ForecastInfo>Error: {error}</ForecastInfo>}
-      {!loading && !error && windData.length > 0 && (
-        <WindGraphContainer>
-          <WindGraph data={windData} />
-        </WindGraphContainer>
+      {!loading && !error && weatherData && (
+        <>
+          <CurrentConditions>
+            <CurrentConditionsData>
+              Temperature:{' '}
+              {convertTemperature(
+                weatherData.current.properties.temperature.value,
+                weatherData.current.properties.temperature.unitCode
+              ).toFixed(1)}{' '}
+              °F
+            </CurrentConditionsData>
+            <CurrentConditionsData>
+              Wind:{' '}
+              {convertWindSpeed(
+                weatherData.current.properties.windSpeed.value,
+                weatherData.current.properties.windSpeed.unitCode
+              ).toFixed(1)}{' '}
+              mph {getWindDirection(weatherData.current.properties.windDirection.value)}{' '}
+              {getWindArrow(weatherData.current.properties.windDirection.value)}
+            </CurrentConditionsData>
+            <CurrentConditionsData>
+              Wind Gust:{' '}
+              {convertWindSpeed(
+                weatherData.current.properties.windGust.value,
+                weatherData.current.properties.windGust.unitCode
+              ).toFixed(1)}{' '}
+              mph
+            </CurrentConditionsData>
+            <CurrentConditionsData>
+              Observed at {weatherData.current.name}{' '}
+              {Math.round(
+                (new Date().getTime() -
+                  new Date(weatherData.current.properties.timestamp).getTime()) /
+                  60000
+              )}{' '}
+              minutes ago
+            </CurrentConditionsData>
+          </CurrentConditions>
+          <WindGraphContainer>
+            <WindGraph data={windData} />
+          </WindGraphContainer>
+        </>
       )}
     </AppContainer>
   );
