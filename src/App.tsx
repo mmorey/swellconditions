@@ -59,19 +59,47 @@ const WindGraphContainer = styled.div`
 
 const CurrentConditions = styled.div`
   background-color: #1f1f1f;
-  padding: 10px;
+  padding: 15px;
   margin: 20px auto;
-  width: 90%;
+  width: 85%;
   border-radius: 10px;
+  display: flex;
+  flex-direction: column;
 `;
 
-const CurrentConditionsTitle = styled.h3`
-  margin: 0 0 10px 0;
-  color: #44d7a8;
+const CurrentConditionsRow = styled.div`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
 `;
 
-const CurrentConditionsData = styled.p`
-  margin: 5px 0;
+const ConditionColumn = styled.div`
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 50%;
+`;
+
+const LargeValue = styled.div`
+  font-size: 24px;
+  font-weight: bold;
+`;
+
+const WindGust = styled.div`
+  font-size: 14px;
+  margin-top: 5px;
+`;
+
+const WindDirection = styled.div`
+  font-size: 14px;
+  margin-top: 5px;
+`;
+
+const ObservationTime = styled.div`
+  font-size: 12px;
+  color: #999;
+  text-align: center;
 `;
 
 const AppContent: React.FC = () => {
@@ -209,32 +237,38 @@ const AppContent: React.FC = () => {
       {!loading && !error && weatherData && (
         <>
           <CurrentConditions>
-            <CurrentConditionsData>
-              Temperature:{' '}
-              {convertTemperature(
-                weatherData.current.properties.temperature.value,
-                weatherData.current.properties.temperature.unitCode
-              ).toFixed(1)}{' '}
-              °F
-            </CurrentConditionsData>
-            <CurrentConditionsData>
-              Wind:{' '}
-              {convertWindSpeed(
-                weatherData.current.properties.windSpeed.value,
-                weatherData.current.properties.windSpeed.unitCode
-              ).toFixed(1)}{' '}
-              mph {getWindDirection(weatherData.current.properties.windDirection.value)}{' '}
-              {getWindArrow(weatherData.current.properties.windDirection.value)}
-            </CurrentConditionsData>
-            <CurrentConditionsData>
-              Wind Gust:{' '}
-              {convertWindSpeed(
-                weatherData.current.properties.windGust.value,
-                weatherData.current.properties.windGust.unitCode
-              ).toFixed(1)}{' '}
-              mph
-            </CurrentConditionsData>
-            <CurrentConditionsData>
+            <CurrentConditionsRow>
+              <ConditionColumn>
+                <LargeValue>
+                  {convertTemperature(
+                    weatherData.current.properties.temperature.value,
+                    weatherData.current.properties.temperature.unitCode
+                  ).toFixed(1)}{' '}
+                  °F
+                </LargeValue>
+              </ConditionColumn>
+              <ConditionColumn>
+                <LargeValue>
+                  {convertWindSpeed(
+                    weatherData.current.properties.windSpeed.value,
+                    weatherData.current.properties.windSpeed.unitCode
+                  ).toFixed(1)}{' '}
+                  mph
+                </LargeValue>
+                <WindGust>
+                  {convertWindSpeed(
+                    weatherData.current.properties.windGust.value,
+                    weatherData.current.properties.windGust.unitCode
+                  ).toFixed(1)}{' '}
+                  mph gust
+                </WindGust>
+                <WindDirection>
+                  {getWindDirection(weatherData.current.properties.windDirection.value)}{' '}
+                  {getWindArrow(weatherData.current.properties.windDirection.value)}
+                </WindDirection>
+              </ConditionColumn>
+            </CurrentConditionsRow>
+            <ObservationTime>
               Observed at {weatherData.current.name}{' '}
               {Math.round(
                 (new Date().getTime() -
@@ -242,7 +276,7 @@ const AppContent: React.FC = () => {
                   60000
               )}{' '}
               minutes ago
-            </CurrentConditionsData>
+            </ObservationTime>
           </CurrentConditions>
           <WindGraphContainer>
             <WindGraph data={windData} />
