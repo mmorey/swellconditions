@@ -44,10 +44,10 @@ const WindDirection = styled.div`
   align-items: center;
 `;
 
-const WindArrow = styled.span<{ rotation: number }>`
+const WindArrow = styled.span<{ $rotation: number }>`
   display: inline-block;
   margin-left: 5px;
-  transform: rotate(${(props) => props.rotation}deg);
+  transform: rotate(${(props) => props.$rotation}deg);
 `;
 
 const ObservationTime = styled.div`
@@ -72,7 +72,7 @@ const CurrentConditions: React.FC<CurrentConditionsProps> = ({ weatherData }) =>
           <WindGust>{convertWindSpeed(weatherData.current.properties.windGust.value, weatherData.current.properties.windGust.unitCode).toFixed(1)} mph gust</WindGust>
           <WindDirection>
             {getWindDirection(weatherData.current.properties.windDirection.value)}
-            <WindArrow rotation={weatherData.current.properties.windDirection.value}>{getWindArrow(weatherData.current.properties.windDirection.value).arrow}</WindArrow>
+            <WindArrow $rotation={weatherData.current.properties.windDirection.value}>{getWindArrow(weatherData.current.properties.windDirection.value).arrow}</WindArrow>
           </WindDirection>
         </ConditionColumn>
       </CurrentConditionsRow>
