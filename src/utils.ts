@@ -26,8 +26,6 @@ export const getWindDirection = (degrees: number): string => {
   return directions[index];
 };
 
-export const getWindArrow = (degrees: number): string => {
-  const arrows = ['↓', '↙', '←', '↖', '↑', '↗', '→', '↘'];
-  const index = Math.round(degrees / 45) % 8;
-  return arrows[index];
+export const getWindArrow = (degrees: number): { arrow: string; rotation: number } => {
+  return { arrow: '↓', rotation: degrees };
 };
