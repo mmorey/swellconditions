@@ -1,8 +1,9 @@
 // Utility functions
+import { parse } from 'iso8601-duration';
 
 export const parseISO8601Duration = (duration: string): number => {
-  const matches = duration.match(/PT(\d+)H/);
-  return matches ? parseInt(matches[1], 10) : 0;
+  const parsedDuration = parse(duration);
+  return parsedDuration.hours || 0;
 };
 
 export const convertTemperature = (value: number, unitCode: string): number => {
@@ -20,24 +21,7 @@ export const convertWindSpeed = (value: number, unitCode: string): number => {
 };
 
 export const getWindDirection = (degrees: number): string => {
-  const directions = [
-    'N',
-    'NNE',
-    'NE',
-    'ENE',
-    'E',
-    'ESE',
-    'SE',
-    'SSE',
-    'S',
-    'SSW',
-    'SW',
-    'WSW',
-    'W',
-    'WNW',
-    'NW',
-    'NNW',
-  ];
+  const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
   const index = Math.round(degrees / 22.5) % 16;
   return directions[index];
 };
