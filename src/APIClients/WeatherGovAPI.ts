@@ -5,10 +5,27 @@ const headers = {
   'User-Agent': 'swellconditions.com',
 };
 
+const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, delay = 500): Promise<Response> => {
+  try {
+    const response = await fetch(url, options);
+    if (response.status === 500 && retries > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchWithRetry(url, options, retries - 1, delay);
+    }
+    return response;
+  } catch (error) {
+    if (retries > 0) {
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return fetchWithRetry(url, options, retries - 1, delay);
+    }
+    throw error;
+  }
+};
+
 export const fetchWeatherData = async (latitude: string, longitude: string): Promise<WeatherData> => {
   const roundedLat = Number(latitude).toFixed(4);
   const roundedLon = Number(longitude).toFixed(4);
-  const response = await fetch(`https://api.weather.gov/points/${roundedLat},${roundedLon}`, {
+  const response = await fetchWithRetry(`https://api.weather.gov/points/${roundedLat},${roundedLon}`, {
     headers,
   });
 
@@ -24,7 +41,7 @@ export const fetchWeatherData = async (latitude: string, longitude: string): Pro
 };
 
 const fetchForecastData = async (forecastGridDataUrl: string): Promise<ForecastGridDataAPIResponse> => {
-  const response = await fetch(forecastGridDataUrl, { headers });
+  const response = await fetchWithRetry(forecastGridDataUrl, { headers });
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
@@ -32,7 +49,7 @@ const fetchForecastData = async (forecastGridDataUrl: string): Promise<ForecastG
 };
 
 const fetchCurrentConditions = async (observationStationsUrl: string): Promise<CurrentConditionsAPIResponse> => {
-  const stationsResponse = await fetch(observationStationsUrl, { headers });
+  const stationsResponse = await fetchWithRetry(observationStationsUrl, { headers });
   if (!stationsResponse.ok) {
     throw new Error(`HTTP error! status: ${stationsResponse.status}`);
   }
@@ -42,7 +59,7 @@ const fetchCurrentConditions = async (observationStationsUrl: string): Promise<C
   const stationName = firstStation.properties.name;
 
   const currentConditionsUrl = `${stationId}/observations/latest`;
-  const currentConditionsResponse = await fetch(currentConditionsUrl, { headers });
+  const currentConditionsResponse = await fetchWithRetry(currentConditionsUrl, { headers });
   if (!currentConditionsResponse.ok) {
     throw new Error(`HTTP error! status: ${currentConditionsResponse.status}`);
   }
