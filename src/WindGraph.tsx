@@ -1,31 +1,8 @@
-import React from "react";
-import { Chart } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-  ChartOptions,
-  ChartData,
-  ScatterController,
-  LineController,
-} from "chart.js";
+import React from 'react';
+import { Chart } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartData, ScatterController, LineController } from 'chart.js';
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  ScatterController,
-  LineController,
-  Title,
-  Tooltip,
-  Legend
-);
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ScatterController, LineController, Title, Tooltip, Legend);
 
 interface WindData {
   time: string;
@@ -39,19 +16,19 @@ interface WindGraphProps {
 }
 
 const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
-  const chartData: ChartData<"line" | "scatter"> = {
+  const chartData: ChartData<'line' | 'scatter'> = {
     labels: data.map((d) => d.time),
     datasets: [
       {
-        type: "line",
-        label: "Wind Speed",
+        type: 'line',
+        label: 'Wind Speed',
         data: data.map((d) => d.speed),
-        borderColor: "rgb(75, 192, 192)",
-        backgroundColor: "rgba(75, 192, 192, 0.5)",
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.5)',
         tension: 0.1,
         pointStyle: data.map((d) => {
-          const canvas = document.createElement("canvas");
-          const ctx = canvas.getContext("2d");
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d');
           if (ctx) {
             canvas.width = 30;
             canvas.height = 30;
@@ -63,7 +40,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
             ctx.lineTo(0, 3);
             ctx.lineTo(6, 6);
             ctx.closePath();
-            ctx.fillStyle = "rgb(75, 192, 192)";
+            ctx.fillStyle = 'rgb(75, 192, 192)';
             ctx.fill();
           }
           return canvas;
@@ -71,22 +48,18 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
         pointRadius: 8,
       },
       {
-        type: "scatter",
-        label: "Wind Gust",
-        data: data
-          .map((d, index) =>
-            d.gust !== d.speed ? { x: index, y: d.gust } : null
-          )
-          .filter((point): point is { x: number; y: number } => point !== null),
-        borderColor: "rgb(255, 99, 132)",
-        backgroundColor: "rgba(255, 99, 132, 0.5)",
-        pointRadius: 6,
-        pointHoverRadius: 8,
+        type: 'scatter',
+        label: 'Wind Gust',
+        data: data.map((d, index) => (d.gust !== d.speed ? { x: index, y: d.gust } : null)).filter((point): point is { x: number; y: number } => point !== null),
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.5)',
+        pointRadius: 4,
+        pointHoverRadius: 6,
       },
     ],
   };
 
-  const options: ChartOptions<"line" | "scatter"> = {
+  const options: ChartOptions<'line' | 'scatter'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -95,42 +68,55 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
       },
       title: {
         display: true,
-        text: "Wind Forecast",
-        color: "white",
+        text: 'Wind Forecast',
+        color: 'white',
+      },
+      tooltip: {
+        callbacks: {
+          label: (context) => {
+            const dataIndex = context.dataIndex;
+            const dataPoint = data[dataIndex];
+            const labels = [`Wind Speed: ${dataPoint.speed.toFixed(1)} MPH`, `Direction: ${dataPoint.direction}°`];
+            if (dataPoint.gust > dataPoint.speed) {
+              labels.splice(1, 0, `Wind Gust: ${dataPoint.gust.toFixed(1)} MPH`);
+            }
+            return labels;
+          },
+        },
       },
     },
     scales: {
       x: {
         title: {
           display: false,
-          text: "Date and Time",
-          color: "white",
+          text: 'Date and Time',
+          color: 'white',
         },
         ticks: {
-          color: "white",
+          color: 'white',
         },
         grid: {
-          color: "rgba(255, 255, 255, 0.1)",
+          color: 'rgba(255, 255, 255, 0.1)',
         },
       },
       y: {
         title: {
           display: true,
-          text: "Wind Speed (MPH)",
-          color: "white",
+          text: 'Wind Speed (MPH)',
+          color: 'white',
         },
         ticks: {
-          color: "white",
+          color: 'white',
         },
         grid: {
-          color: "rgba(255, 255, 255, 0.1)",
+          color: 'rgba(255, 255, 255, 0.1)',
         },
       },
     },
   };
 
   return (
-    <div style={{ height: "400px", minHeight: "400px", width: "100%" }}>
+    <div style={{ height: '400px', minHeight: '400px', width: '100%' }}>
       <Chart type="line" data={chartData} options={options} />
     </div>
   );
