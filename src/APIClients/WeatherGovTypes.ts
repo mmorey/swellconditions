@@ -2,6 +2,12 @@ export interface WeatherGovAPIResponse {
   properties: {
     forecastGridData: string;
     observationStations: string;
+    relativeLocation: {
+      properties: {
+        city: string;
+        state: string;
+      };
+    };
   };
 }
 
@@ -56,4 +62,6 @@ export interface CurrentConditionsAPIResponse {
 export interface WeatherData {
   current: CurrentConditionsAPIResponse;
   forecast: ForecastGridDataAPIResponse;
+  city: string;
+  state: string;
 }

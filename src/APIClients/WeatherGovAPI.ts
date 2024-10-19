@@ -37,7 +37,12 @@ export const fetchWeatherData = async (latitude: string, longitude: string): Pro
   const forecast = await fetchForecastData(data.properties.forecastGridData);
   const current = await fetchCurrentConditions(data.properties.observationStations);
 
-  return { forecast, current };
+  return {
+    forecast,
+    current,
+    city: data.properties.relativeLocation.properties.city,
+    state: data.properties.relativeLocation.properties.state,
+  };
 };
 
 const fetchForecastData = async (forecastGridDataUrl: string): Promise<ForecastGridDataAPIResponse> => {
@@ -58,16 +63,34 @@ const fetchCurrentConditions = async (observationStationsUrl: string): Promise<C
   const stationId = firstStation.id;
   const stationName = firstStation.properties.name;
 
-  const currentConditionsUrl = `${stationId}/observations/latest`;
+  const currentConditionsUrl = `${stationId}/observations`;
   const currentConditionsResponse = await fetchWithRetry(currentConditionsUrl, { headers });
   if (!currentConditionsResponse.ok) {
     throw new Error(`HTTP error! status: ${currentConditionsResponse.status}`);
   }
   const currentConditionsData = await currentConditionsResponse.json();
 
-  currentConditionsData.name = stationName;
+  // Iterate through observations to find the first one with valid temperature and wind speed
+  for (const observation of currentConditionsData.features) {
+    const temperature = observation.properties.temperature.value;
+    const windSpeed = observation.properties.windSpeed.value;
 
-  return currentConditionsData;
+    if (temperature !== null && windSpeed !== null) {
+      return {
+        name: stationName,
+        geometry: observation.geometry,
+        properties: {
+          timestamp: observation.properties.timestamp,
+          temperature: observation.properties.temperature,
+          windSpeed: observation.properties.windSpeed,
+          windDirection: observation.properties.windDirection,
+          windGust: observation.properties.windGust,
+        },
+      };
+    }
+  }
+
+  throw new Error('No valid observation found with temperature and wind speed');
 };
 
 export const processWeatherGovWindData = (weatherData: WeatherData | null) => {

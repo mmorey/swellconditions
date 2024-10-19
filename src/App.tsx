@@ -53,7 +53,6 @@ const WindGraphContainer = styled.div`
 
 const AppContent: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const location = searchParams.get('location') || 'San Francisco, CA';
   const latitude = searchParams.get('lat') || '37.7749';
   const longitude = searchParams.get('lon') || '-122.4194';
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -86,7 +85,7 @@ const AppContent: React.FC = () => {
       <TitleContainer>
         <MainTitle>Swell Conditions</MainTitle>
         <LocationInfo>
-          {location} {coordinates}
+          {weatherData ? `${weatherData.city}, ${weatherData.state}` : 'Loading...'} {coordinates}
         </LocationInfo>
         <GearIcon role="img" aria-label="Settings">
           ⚙️
