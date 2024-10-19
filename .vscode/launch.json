@@ -8,7 +8,7 @@
             "type": "chrome",
             "request": "launch",
             "name": "Launch Chrome against localhost",
-            "url": "http://localhost:5173/?location=La%20Jolla&lat=32.807566&lon=-117.269747",
+            "url": "http://localhost:5173/?lat=37.7749&lon=-122.4194",
             "webRoot": "${workspaceFolder}"
         }
     ]

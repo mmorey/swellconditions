@@ -59,38 +59,42 @@ const fetchCurrentConditions = async (observationStationsUrl: string): Promise<C
     throw new Error(`HTTP error! status: ${stationsResponse.status}`);
   }
   const stationsData = await stationsResponse.json();
-  const firstStation = stationsData.features[0];
-  const stationId = firstStation.id;
-  const stationName = firstStation.properties.name;
 
-  const currentConditionsUrl = `${stationId}/observations`;
-  const currentConditionsResponse = await fetchWithRetry(currentConditionsUrl, { headers });
-  if (!currentConditionsResponse.ok) {
-    throw new Error(`HTTP error! status: ${currentConditionsResponse.status}`);
-  }
-  const currentConditionsData = await currentConditionsResponse.json();
+  for (let i = 0; i < Math.min(10, stationsData.features.length); i++) {
+    const station = stationsData.features[i];
+    const stationId = station.id;
+    const stationName = station.properties.name;
 
-  // Iterate through observations to find the first one with valid temperature and wind speed
-  for (const observation of currentConditionsData.features) {
-    const temperature = observation.properties.temperature.value;
-    const windSpeed = observation.properties.windSpeed.value;
+    const currentConditionsUrl = `${stationId}/observations`;
+    const currentConditionsResponse = await fetchWithRetry(currentConditionsUrl, { headers });
+    if (!currentConditionsResponse.ok) {
+      console.warn(`HTTP error for station ${stationName}! status: ${currentConditionsResponse.status}`);
+      continue;
+    }
+    const currentConditionsData = await currentConditionsResponse.json();
 
-    if (temperature !== null && windSpeed !== null) {
-      return {
-        name: stationName,
-        geometry: observation.geometry,
-        properties: {
-          timestamp: observation.properties.timestamp,
-          temperature: observation.properties.temperature,
-          windSpeed: observation.properties.windSpeed,
-          windDirection: observation.properties.windDirection,
-          windGust: observation.properties.windGust,
-        },
-      };
+    // Iterate through observations to find the first one with valid temperature and wind speed
+    for (const observation of currentConditionsData.features) {
+      const temperature = observation.properties.temperature.value;
+      const windSpeed = observation.properties.windSpeed.value;
+
+      if (temperature !== null && windSpeed !== null) {
+        return {
+          name: stationName,
+          geometry: observation.geometry,
+          properties: {
+            timestamp: observation.properties.timestamp,
+            temperature: observation.properties.temperature,
+            windSpeed: observation.properties.windSpeed,
+            windDirection: observation.properties.windDirection,
+            windGust: observation.properties.windGust,
+          },
+        };
+      }
     }
   }
 
-  throw new Error('No valid observation found with temperature and wind speed');
+  throw new Error('No valid observation found with temperature and wind speed after trying up to 10 stations');
 };
 
 export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
