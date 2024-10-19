@@ -110,7 +110,7 @@ const AppContent: React.FC = () => {
       {error && <ErrorInfo>{error}</ErrorInfo>}
       {!loading && !error && weatherData ? (
         <>
-          <CurrentConditions weatherData={weatherData} />
+          <CurrentConditions weatherData={weatherData} queriedLat={latitude} queriedLon={longitude} />
           <WindGraphContainer>
             <WindGraph data={windData} />
           </WindGraphContainer>
