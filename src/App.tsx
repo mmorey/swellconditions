@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { BrowserRouter, useSearchParams } from 'react-router-dom';
 import { WeatherData } from './APIClients/WeatherGovTypes';
-import WindGraph from './WindGraph';
+import WindGraph from './components/WindGraph';
 import { fetchWeatherData, processWeatherGovWindData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
 import CurrentConditions from './components/CurrentConditions';
 import SunInformation from './components/SunInformation';

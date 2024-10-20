@@ -1,8 +1,9 @@
 import React from 'react';
 import { Chart } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartData, ScatterController, LineController } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, Title, Tooltip, Legend, ChartOptions, ChartData, ScatterController } from 'chart.js';
+import { getWindDirection } from '../utils';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ScatterController, LineController, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, PointElement, ScatterController, Title, Tooltip, Legend);
 
 interface WindData {
   time: string;
@@ -16,16 +17,13 @@ interface WindGraphProps {
 }
 
 const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
-  const chartData: ChartData<'line' | 'scatter'> = {
-    labels: data.map((d) => d.time),
+  const chartData: ChartData<'scatter'> = {
     datasets: [
       {
-        type: 'line',
+        type: 'scatter',
         label: 'Wind Speed',
-        data: data.map((d) => d.speed),
-        borderColor: 'rgb(75, 192, 192)',
+        data: data.map((d, index) => ({ x: index, y: d.speed })),
         backgroundColor: 'rgba(75, 192, 192, 0.5)',
-        tension: 0.1,
         pointStyle: data.map((d) => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
@@ -44,19 +42,10 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
         }),
         pointRadius: 8,
       },
-      {
-        type: 'scatter',
-        label: 'Wind Gust',
-        data: data.map((d, index) => (d.gust !== d.speed ? { x: index, y: d.gust } : null)).filter((point): point is { x: number; y: number } => point !== null),
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
-        pointRadius: 4,
-        pointHoverRadius: 6,
-      },
     ],
   };
 
-  const options: ChartOptions<'line' | 'scatter'> = {
+  const options: ChartOptions<'scatter'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -73,17 +62,20 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
           label: (context) => {
             const dataIndex = context.dataIndex;
             const dataPoint = data[dataIndex];
-            const labels = [`Wind Speed: ${dataPoint.speed.toFixed(1)} MPH`, `Direction: ${dataPoint.direction}°`];
-            if (dataPoint.gust > dataPoint.speed) {
-              labels.splice(1, 0, `Wind Gust: ${dataPoint.gust.toFixed(1)} MPH`);
-            }
-            return labels;
+            return [
+              `Time: ${dataPoint.time}`,
+              `Wind Speed: ${dataPoint.speed.toFixed(1)} mph`,
+              `Wind Gust: ${dataPoint.gust.toFixed(1)} mph`,
+              `Direction: ${getWindDirection(dataPoint.direction)} ${dataPoint.direction}°`,
+            ];
           },
         },
       },
     },
     scales: {
       x: {
+        type: 'category',
+        labels: data.map((d) => d.time),
         title: {
           display: false,
           text: 'Date and Time',
@@ -114,7 +106,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
 
   return (
     <div style={{ height: '400px', minHeight: '400px', width: '100%' }}>
-      <Chart type="line" data={chartData} options={options} />
+      <Chart type="scatter" data={chartData} options={options} />
     </div>
   );
 };

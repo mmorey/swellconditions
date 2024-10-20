@@ -101,17 +101,6 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
   if (!weatherData) return [];
 
   try {
-    const now = new Date();
-    const twentyFourHoursLater = new Date(now.getTime() + 24 * 60 * 60 * 1000);
-
-    const windSpeedData = weatherData.forecast.properties.windSpeed.values;
-    if (!Array.isArray(windSpeedData)) {
-      throw new Error('Wind speed data is not in the expected format');
-    }
-
-    const windDirectionData = weatherData.forecast.properties.windDirection?.values || [];
-    const windGustData = weatherData.forecast.properties.windGust?.values || [];
-
     const hourlyData: {
       time: Date;
       speed: number;
@@ -119,44 +108,80 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
       gust: number;
     }[] = [];
 
-    windSpeedData.forEach((windSpeed) => {
-      if (typeof windSpeed.validTime !== 'string') {
-        throw new Error('Invalid validTime in wind speed data');
-      }
+    const windSpeedData = weatherData.forecast.properties.windSpeed.values;
+    const windDirectionData = weatherData.forecast.properties.windDirection?.values || [];
+    const windGustData = weatherData.forecast.properties.windGust?.values || [];
 
+    // Process wind speed data
+    windSpeedData.forEach((windSpeed) => {
       const [startTimeStr, durationStr] = windSpeed.validTime.split('/');
       const startTime = new Date(startTimeStr);
       const durationHours = parseISO8601Duration(durationStr);
 
       for (let i = 0; i < durationHours; i++) {
         const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
-        if (time >= now && time <= twentyFourHoursLater) {
-          const direction =
-            windDirectionData.find((dir) => {
-              const dirStartTime = new Date(dir.validTime.split('/')[0]);
-              const dirEndTime = new Date(dirStartTime.getTime() + parseISO8601Duration(dir.validTime.split('/')[1]) * 60 * 60 * 1000);
-              return time >= dirStartTime && time < dirEndTime;
-            })?.value || 0;
 
-          const gust =
-            windGustData.find((g) => {
-              const gustStartTime = new Date(g.validTime.split('/')[0]);
-              const gustEndTime = new Date(gustStartTime.getTime() + parseISO8601Duration(g.validTime.split('/')[1]) * 60 * 60 * 1000);
-              const isWithinRange = time >= gustStartTime && time < gustEndTime;
-              return isWithinRange;
-            })?.value || windSpeed.value;
+        hourlyData.push({
+          time,
+          speed: convertWindSpeed(windSpeed.value, weatherData.forecast.properties.windSpeed.uom),
+          direction: 0,
+          gust: 0,
+        });
+      }
+    });
 
+    // Process wind direction data
+    windDirectionData.forEach((windDirection) => {
+      const [startTimeStr, durationStr] = windDirection.validTime.split('/');
+      const startTime = new Date(startTimeStr);
+      const durationHours = parseISO8601Duration(durationStr);
+
+      for (let i = 0; i < durationHours; i++) {
+        const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
+        const existingEntry = hourlyData.find((entry) => entry.time.getTime() === time.getTime());
+        if (existingEntry) {
+          existingEntry.direction = windDirection.value;
+        } else {
           hourlyData.push({
             time,
-            speed: convertWindSpeed(windSpeed.value, weatherData.forecast.properties.windSpeed.uom),
-            direction,
-            gust: convertWindSpeed(gust, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1'),
+            speed: 0,
+            direction: windDirection.value,
+            gust: 0,
           });
         }
       }
     });
 
-    return hourlyData.map((data) => ({
+    // Process wind gust data
+    windGustData.forEach((windGust) => {
+      const [startTimeStr, durationStr] = windGust.validTime.split('/');
+      const startTime = new Date(startTimeStr);
+      const durationHours = parseISO8601Duration(durationStr);
+
+      for (let i = 0; i < durationHours; i++) {
+        const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
+        const existingEntry = hourlyData.find((entry) => entry.time.getTime() === time.getTime());
+        if (existingEntry) {
+          existingEntry.gust = convertWindSpeed(windGust.value, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1');
+        } else {
+          hourlyData.push({
+            time,
+            speed: 0,
+            direction: 0,
+            gust: convertWindSpeed(windGust.value, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1'),
+          });
+        }
+      }
+    });
+
+    // Sort the hourlyData array by time
+    hourlyData.sort((a, b) => a.time.getTime() - b.time.getTime());
+
+    // Limit the hourlyData array to the next 24 hours and no earlier than the current time
+    const currentTime = new Date();
+    const limitedData = hourlyData.filter((data) => data.time >= currentTime && data.time <= new Date(currentTime.getTime() + 24 * 60 * 60 * 1000));
+
+    return limitedData.map((data) => ({
       time: data.time.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
