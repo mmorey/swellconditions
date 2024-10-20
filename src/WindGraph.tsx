@@ -1,6 +1,7 @@
 import React from 'react';
 import { Chart } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartData, ScatterController, LineController } from 'chart.js';
+import { getWindDirection, getWindArrow } from './utils';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ScatterController, LineController, Title, Tooltip, Legend);
 
@@ -34,14 +35,11 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
             canvas.height = 30;
             ctx.translate(15, 15);
             ctx.rotate(((d.direction + 180) * Math.PI) / 180);
-            ctx.beginPath();
-            ctx.moveTo(0, -12);
-            ctx.lineTo(-6, 6);
-            ctx.lineTo(0, 3);
-            ctx.lineTo(6, 6);
-            ctx.closePath();
+            ctx.font = '30px Arial';
             ctx.fillStyle = 'rgb(75, 192, 192)';
-            ctx.fill();
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('↑', 0, 0);
           }
           return canvas;
         }),
