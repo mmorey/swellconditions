@@ -177,15 +177,19 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
     // Sort the hourlyData array by time
     hourlyData.sort((a, b) => a.time.getTime() - b.time.getTime());
 
-    // Limit the hourlyData array to the next 24 hours and no earlier than the current time
+    // Limit the hourlyData array to the next 12 hours and no earlier than the current time
     const currentTime = new Date();
-    const limitedData = hourlyData.filter((data) => data.time >= currentTime && data.time <= new Date(currentTime.getTime() + 24 * 60 * 60 * 1000));
+    const limitedData = hourlyData.filter((data) => data.time >= currentTime && data.time <= new Date(currentTime.getTime() + 12 * 60 * 60 * 1000));
 
     return limitedData.map((data) => ({
-      time: data.time.toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit',
-      }),
+      time: data.time
+        .toLocaleTimeString([], {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          hourCycle: 'h12',
+        })
+        .toLowerCase(),
       speed: data.speed,
       direction: data.direction,
       gust: data.gust,
