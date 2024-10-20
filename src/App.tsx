@@ -3,9 +3,12 @@ import styled from 'styled-components';
 import { BrowserRouter, useSearchParams } from 'react-router-dom';
 import { WeatherData } from './APIClients/WeatherGovTypes';
 import WindGraph from './WindGraph';
-import { fetchWeatherData, processWeatherGovWindData } from './APIClients/WeatherGovAPI';
+import { fetchWeatherData, processWeatherGovWindData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
 import CurrentConditions from './components/CurrentConditions';
 import SunInformation from './components/SunInformation';
+
+// Debug flag
+const DEBUG_MODE = false;
 
 const AppContainer = styled.div`
   background-color: #171717;
@@ -65,6 +68,18 @@ const WindGraphContainer = styled.div`
   margin: 20px auto;
 `;
 
+const DownloadLink = styled.a`
+  display: block;
+  text-align: center;
+  margin: 20px 0;
+  color: #4a90e2;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+`;
+
 const AppContent: React.FC = () => {
   const [searchParams] = useSearchParams();
   const latitude = parseFloat(searchParams.get('lat') || '37.7749');
@@ -72,6 +87,7 @@ const AppContent: React.FC = () => {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [csvDataUrl, setCsvDataUrl] = useState<string | null>(null);
 
   const coordinates = `(${latitude}, ${longitude})`;
 
@@ -91,6 +107,16 @@ const AppContent: React.FC = () => {
 
     fetchData();
   }, [latitude, longitude]);
+
+  useEffect(() => {
+    if (DEBUG_MODE && weatherData) {
+      const csvContent = getDebugCSVContent(weatherData);
+      if (csvContent) {
+        const encodedCsv = encodeURIComponent(csvContent);
+        setCsvDataUrl(`data:text/csv;charset=utf-8,${encodedCsv}`);
+      }
+    }
+  }, [weatherData]);
 
   const windData = processWeatherGovWindData(weatherData);
 
@@ -114,6 +140,11 @@ const AppContent: React.FC = () => {
           <WindGraphContainer>
             <WindGraph data={windData} />
           </WindGraphContainer>
+          {DEBUG_MODE && csvDataUrl && (
+            <DownloadLink href={csvDataUrl} download="weather_data.csv">
+              Download Debug CSV
+            </DownloadLink>
+          )}
         </>
       ) : (
         <>

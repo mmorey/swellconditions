@@ -1,7 +1,6 @@
 import React from 'react';
 import { Chart } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartData, ScatterController, LineController } from 'chart.js';
-import { getWindDirection, getWindArrow } from './utils';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ScatterController, LineController, Title, Tooltip, Legend);
 

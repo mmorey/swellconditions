@@ -170,3 +170,56 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
     return [];
   }
 };
+
+// Debug helper function
+const createDebugCSV = (weatherData: WeatherData): string => {
+  const headers = ['UTC Timestamp', 'Temperature', 'Wind Speed', 'Wind Gust', 'Wind Direction'];
+  const rowMap = new Map<string, string[]>();
+
+  const addToRowMap = (property: string, values: any[] | undefined) => {
+    if (!values) return;
+    values.forEach((value) => {
+      const [startTimeStr, durationStr] = value.validTime.split('/');
+      const startTime = new Date(startTimeStr);
+      const durationHours = parseISO8601Duration(durationStr);
+
+      for (let i = 0; i < durationHours; i++) {
+        const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
+        const timeStr = time.toISOString();
+        if (!rowMap.has(timeStr)) {
+          rowMap.set(timeStr, [timeStr, '', '', '', '']);
+        }
+        const row = rowMap.get(timeStr)!;
+        switch (property) {
+          case 'temperature':
+            row[1] = value.value;
+            break;
+          case 'windSpeed':
+            row[2] = value.value;
+            break;
+          case 'windGust':
+            row[3] = value.value;
+            break;
+          case 'windDirection':
+            row[4] = value.value;
+            break;
+        }
+      }
+    });
+  };
+
+  addToRowMap('temperature', weatherData.forecast.properties.temperature.values);
+  addToRowMap('windSpeed', weatherData.forecast.properties.windSpeed.values);
+  addToRowMap('windGust', weatherData.forecast.properties.windGust?.values);
+  addToRowMap('windDirection', weatherData.forecast.properties.windDirection?.values);
+
+  const rows = Array.from(rowMap.values());
+  rows.sort((a, b) => new Date(a[0]).getTime() - new Date(b[0]).getTime());
+
+  return [headers, ...rows].map((row) => row.join(',')).join('\n');
+};
+
+export const getDebugCSVContent = (weatherData: WeatherData | null): string | null => {
+  if (!weatherData) return null;
+  return createDebugCSV(weatherData);
+};
