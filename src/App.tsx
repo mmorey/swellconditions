@@ -8,16 +8,18 @@ import CurrentConditions from './components/CurrentConditions';
 import SunInformation from './components/SunInformation';
 
 // Debug flag
-const DEBUG_MODE = false;
+const DEBUG_MODE = true;
 
 const AppContainer = styled.div`
-  min-height: 100vh;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 `;
 
 const TitleContainer = styled.div`
   width: 100%;
   text-align: center;
-  padding: 10px 0;
   position: relative;
 `;
 
@@ -36,8 +38,8 @@ const LocationInfo = styled.h2`
 
 const GearIcon = styled.span`
   position: absolute;
-  right: 15px;
-  top: 15px;
+  right: 10px;
+  top: 10px;
   font-size: 24px;
   cursor: pointer;
 `;
@@ -54,7 +56,6 @@ const ErrorInfo = styled.div`
 const PlaceholderContainer = styled.div`
   background-color: ${(props) => props.theme.colors.backgroundLight};
   padding: 15px;
-  margin: 20px auto;
   width: 85%;
   border-radius: 10px;
   text-align: center;
@@ -63,10 +64,8 @@ const PlaceholderContainer = styled.div`
 const DownloadLink = styled.a`
   display: block;
   text-align: center;
-  margin: 20px 0;
   color: ${(props) => props.theme.colors.text.link};
   text-decoration: none;
-
   &:hover {
     text-decoration: underline;
   }

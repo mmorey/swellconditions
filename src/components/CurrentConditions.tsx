@@ -6,7 +6,6 @@ import { convertTemperature, convertWindSpeed, getWindDirection, getWindArrow } 
 const CurrentConditionsContainer = styled.div`
   background-color: ${(props) => props.theme.colors.backgroundLight};
   padding: 10px;
-  margin: 20px;
   border-radius: 10px;
   display: flex;
   flex-direction: column;

@@ -91,6 +91,7 @@ const fetchCurrentConditions = async (observationStationsUrl: string): Promise<C
           },
         };
       }
+      // console.log(`Missing a value: ${temperature} - ${windSpeed}`);
     }
   }
 

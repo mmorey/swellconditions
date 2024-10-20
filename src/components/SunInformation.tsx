@@ -5,7 +5,6 @@ import * as SunCalc from 'suncalc';
 const SunInformationContainer = styled.div`
   background-color: ${(props) => props.theme.colors.backgroundLight};
   padding: 10px;
-  margin: 20px;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -68,14 +67,14 @@ const SunInformation: React.FC<SunInformationProps> = ({ latitude, longitude }) 
             <SunTime>{formatTime(times.dawn)}</SunTime>
           </SunTimeGroup>
           <SunTimeGroup>
-            <SunLabel>Sunrise</SunLabel>
-            <SunTime>{formatTime(times.sunrise)}</SunTime>
+            <SunLabel>Sunset</SunLabel>
+            <SunTime>{formatTime(times.sunset)}</SunTime>
           </SunTimeGroup>
         </SunColumn>
         <SunColumn>
           <SunTimeGroup>
-            <SunLabel>Sunset</SunLabel>
-            <SunTime>{formatTime(times.sunset)}</SunTime>
+            <SunLabel>Sunrise</SunLabel>
+            <SunTime>{formatTime(times.sunrise)}</SunTime>
           </SunTimeGroup>
           <SunTimeGroup>
             <SunLabel>Last Light</SunLabel>

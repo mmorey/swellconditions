@@ -20,7 +20,6 @@ interface WindGraphProps {
 const ChartContainer = styled.div`
   height: 300px;
   padding: 10px;
-  margin: 20px;
   border-radius: 10px;
   background-color: ${(props) => props.theme.colors.backgroundLight};
 `;
