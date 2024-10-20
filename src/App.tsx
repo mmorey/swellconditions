@@ -4,8 +4,11 @@ import { BrowserRouter, useSearchParams } from 'react-router-dom';
 import { WeatherData } from './APIClients/WeatherGovTypes';
 import WindGraph from './components/WindGraph';
 import { fetchWeatherData, processWeatherGovWindData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
+import { fetchWaterTemperatureData } from './APIClients/TidesAndCurrentsGovAPI';
+import { TidesAndCurrentsGovAPIResponse } from './APIClients/TidesAndCurrentsGovTypes';
 import CurrentConditions from './components/CurrentConditions';
 import SunInformation from './components/SunInformation';
+import WaterTemperatureGraph from './components/WaterTemperatureGraph';
 
 // Debug flag
 const DEBUG_MODE = true;
@@ -75,7 +78,9 @@ const AppContent: React.FC = () => {
   const [searchParams] = useSearchParams();
   const latitude = parseFloat(searchParams.get('lat') || '37.7749');
   const longitude = parseFloat(searchParams.get('lon') || '-122.4194');
+  const tideStation = searchParams.get('tideStation') || '9410230';
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
+  const [waterTempData, setWaterTempData] = useState<TidesAndCurrentsGovAPIResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [csvDataUrl, setCsvDataUrl] = useState<string | null>(null);
@@ -87,10 +92,13 @@ const AppContent: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const data = await fetchWeatherData(latitude.toString(), longitude.toString());
-        setWeatherData(data);
+        const weatherPromise = fetchWeatherData(latitude.toString(), longitude.toString());
+        const waterTempPromise = fetchWaterTemperatureData(tideStation);
+        const [weatherResult, waterTempResult] = await Promise.all([weatherPromise, waterTempPromise]);
+        setWeatherData(weatherResult);
+        setWaterTempData(waterTempResult);
       } catch (e) {
-        setError(`Failed to fetch weather data: ${e instanceof Error ? e.message : String(e)}`);
+        setError(`Failed to fetch data: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
         setLoading(false);
       }
@@ -123,14 +131,13 @@ const AppContent: React.FC = () => {
         </GearIcon>
       </TitleContainer>
       <SunInformation latitude={latitude} longitude={longitude} />
-      {loading && <PlaceholderContainer>Loading weather data...</PlaceholderContainer>}
+      {loading && <PlaceholderContainer>Loading data...</PlaceholderContainer>}
       {error && <ErrorInfo>{error}</ErrorInfo>}
-      {!loading && !error && weatherData ? (
+      {!loading && !error && weatherData && waterTempData ? (
         <>
           <CurrentConditions weatherData={weatherData} queriedLat={latitude} queriedLon={longitude} />
-
           <WindGraph data={windData} />
-
+          <WaterTemperatureGraph waterTemperatureData={waterTempData} />
           {DEBUG_MODE && csvDataUrl && (
             <DownloadLink href={csvDataUrl} download="weather_data.csv">
               Download Debug CSV
@@ -141,6 +148,7 @@ const AppContent: React.FC = () => {
         <>
           <PlaceholderContainer>Current conditions unavailable</PlaceholderContainer>
           <PlaceholderContainer>Wind graph unavailable</PlaceholderContainer>
+          <PlaceholderContainer>Water temperature graph unavailable</PlaceholderContainer>
         </>
       )}
     </AppContainer>
