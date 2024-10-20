@@ -4,10 +4,9 @@ import { WeatherData } from '../APIClients/WeatherGovTypes';
 import { convertTemperature, convertWindSpeed, getWindDirection, getWindArrow } from '../utils';
 
 const CurrentConditionsContainer = styled.div`
-  background-color: #1f1f1f;
-  padding: 15px;
-  margin: 20px auto;
-  width: 85%;
+  background-color: ${(props) => props.theme.colors.backgroundLight};
+  padding: 10px;
+  margin: 20px;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -52,7 +51,7 @@ const WindArrow = styled.span<{ $rotation: number }>`
 
 const ObservationTime = styled.div`
   font-size: 2vw; // Responsive font size
-  color: #999;
+  color: ${(props) => props.theme.colors.text.secondary};
   text-align: center;
   white-space: nowrap;
   overflow: hidden;
@@ -77,18 +76,15 @@ const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: numbe
   const R = 3959; // Radius of the Earth in miles
   const toRadians = (degrees: number) => degrees * (Math.PI / 180);
 
-  // Convert latitude and longitude from degrees to radians
   const lat1Rad = toRadians(lat1);
   const lat2Rad = toRadians(lat2);
   const deltaLat = toRadians(lat2 - lat1);
   const deltaLon = toRadians(lon2 - lon1);
 
-  // Haversine formula
   const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) + Math.cos(lat1Rad) * Math.cos(lat2Rad) * Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
-  // Distance in miles
   const distance = R * c;
   return distance;
 };

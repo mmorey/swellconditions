@@ -2,6 +2,7 @@ import React from 'react';
 import { Chart } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, Title, Tooltip, Legend, ChartOptions, ChartData, ScatterController } from 'chart.js';
 import { getWindDirection } from '../utils';
+import styled, { useTheme } from 'styled-components';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, ScatterController, Title, Tooltip, Legend);
 
@@ -16,7 +17,17 @@ interface WindGraphProps {
   data: WindData[];
 }
 
+const ChartContainer = styled.div`
+  height: 300px;
+  padding: 10px;
+  margin: 20px;
+  border-radius: 10px;
+  background-color: ${(props) => props.theme.colors.backgroundLight};
+`;
+
 const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
+  const theme = useTheme();
+
   const chartData: ChartData<'scatter'> = {
     datasets: [
       {
@@ -55,7 +66,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
       title: {
         display: true,
         text: 'Wind Forecast',
-        color: 'white',
+        color: theme.colors.text.primary,
       },
       tooltip: {
         callbacks: {
@@ -79,10 +90,10 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
         title: {
           display: false,
           text: 'Date and Time',
-          color: 'white',
+          color: theme.colors.text.primary,
         },
         ticks: {
-          color: 'white',
+          color: theme.colors.text.primary,
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
@@ -92,10 +103,10 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
         title: {
           display: true,
           text: 'Wind Speed (MPH)',
-          color: 'white',
+          color: theme.colors.text.primary,
         },
         ticks: {
-          color: 'white',
+          color: theme.colors.text.primary,
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
@@ -105,9 +116,9 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
   };
 
   return (
-    <div style={{ height: '400px', minHeight: '400px', width: '100%' }}>
+    <ChartContainer>
       <Chart type="scatter" data={chartData} options={options} />
-    </div>
+    </ChartContainer>
   );
 };
 

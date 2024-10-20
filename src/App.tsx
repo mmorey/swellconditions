@@ -11,14 +11,11 @@ import SunInformation from './components/SunInformation';
 const DEBUG_MODE = false;
 
 const AppContainer = styled.div`
-  background-color: #171717;
   min-height: 100vh;
-  color: #ffffff;
 `;
 
 const TitleContainer = styled.div`
   width: 100%;
-  color: #ffffff;
   text-align: center;
   padding: 10px 0;
   position: relative;
@@ -48,14 +45,14 @@ const GearIcon = styled.span`
 const ErrorInfo = styled.div`
   margin: 10px;
   padding: 10px;
-  background-color: rgba(255, 0, 0, 0.1);
+  background-color: ${(props) => props.theme.colors.text.error};
   border-radius: 5px;
   font-size: 14px;
   text-align: center;
 `;
 
 const PlaceholderContainer = styled.div`
-  background-color: #1f1f1f;
+  background-color: ${(props) => props.theme.colors.backgroundLight};
   padding: 15px;
   margin: 20px auto;
   width: 85%;
@@ -63,16 +60,11 @@ const PlaceholderContainer = styled.div`
   text-align: center;
 `;
 
-const WindGraphContainer = styled.div`
-  width: 90%;
-  margin: 20px auto;
-`;
-
 const DownloadLink = styled.a`
   display: block;
   text-align: center;
   margin: 20px 0;
-  color: #4a90e2;
+  color: ${(props) => props.theme.colors.text.link};
   text-decoration: none;
 
   &:hover {
@@ -137,9 +129,9 @@ const AppContent: React.FC = () => {
       {!loading && !error && weatherData ? (
         <>
           <CurrentConditions weatherData={weatherData} queriedLat={latitude} queriedLon={longitude} />
-          <WindGraphContainer>
-            <WindGraph data={windData} />
-          </WindGraphContainer>
+
+          <WindGraph data={windData} />
+
           {DEBUG_MODE && csvDataUrl && (
             <DownloadLink href={csvDataUrl} download="weather_data.csv">
               Download Debug CSV

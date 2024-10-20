@@ -3,10 +3,9 @@ import styled from 'styled-components';
 import * as SunCalc from 'suncalc';
 
 const SunInformationContainer = styled.div`
-  background-color: #1f1f1f;
-  padding: 20px 15px;
-  margin: 20px auto;
-  width: 85%;
+  background-color: ${(props) => props.theme.colors.backgroundLight};
+  padding: 10px;
+  margin: 20px;
   border-radius: 10px;
   display: flex;
   flex-direction: column;
@@ -44,7 +43,7 @@ const SunTime = styled.div`
 
 const SunLabel = styled.div`
   font-size: 14px;
-  color: #999;
+  color: ${(props) => props.theme.colors.text.secondary};
 `;
 
 interface SunInformationProps {
