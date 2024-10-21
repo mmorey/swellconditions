@@ -22,9 +22,9 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, de
   }
 };
 
-export const fetchWeatherData = async (latitude: string, longitude: string): Promise<WeatherData> => {
-  const roundedLat = Number(latitude).toFixed(4);
-  const roundedLon = Number(longitude).toFixed(4);
+export const fetchWeatherData = async (latitude: number, longitude: number): Promise<WeatherData> => {
+  const roundedLat = latitude.toFixed(4);
+  const roundedLon = longitude.toFixed(4);
   const response = await fetchWithRetry(`https://api.weather.gov/points/${roundedLat},${roundedLon}`, {
     headers,
   });
@@ -91,7 +91,6 @@ const fetchCurrentConditions = async (observationStationsUrl: string): Promise<C
           },
         };
       }
-      // console.log(`Missing a value: ${temperature} - ${windSpeed}`);
     }
   }
 

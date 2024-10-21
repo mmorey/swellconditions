@@ -13,3 +13,10 @@ export interface WaterTemperatureReading {
   v: string;
   f: string;
 }
+
+export interface TideStation {
+  id: string;
+  name: string;
+  lat: number;
+  lng: number;
+}

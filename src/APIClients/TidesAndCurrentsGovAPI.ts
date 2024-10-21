@@ -1,4 +1,5 @@
-import { TidesAndCurrentsGovAPIResponse } from './TidesAndCurrentsGovTypes';
+import { TidesAndCurrentsGovAPIResponse, TideStation } from './TidesAndCurrentsGovTypes';
+import { calculateDistance } from '../utils';
 
 const headers = {};
 
@@ -29,7 +30,41 @@ export const fetchWaterTemperatureData = async (stationId: string): Promise<Tide
   }
 
   const data: TidesAndCurrentsGovAPIResponse = await response.json();
-  console.log('water temp data: ', data);
 
   return data;
+};
+
+export const fetchTideStations = async (): Promise<TideStation[]> => {
+  const url = 'https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=waterlevels&expand=details';
+
+  const response = await fetchWithRetry(url, { headers });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data = await response.json();
+  return data.stations.map((station: any) => ({
+    id: station.id,
+    name: station.name,
+    lat: station.lat,
+    lng: station.lng,
+  }));
+};
+
+export const findClosestTideStation = async (latitude: number, longitude: number): Promise<string> => {
+  const tideStations = await fetchTideStations();
+  const closestStation = tideStations.reduce((closest: TideStation | null, station: TideStation) => {
+    const distance = calculateDistance(latitude, longitude, station.lat, station.lng);
+    if (!closest || distance < calculateDistance(latitude, longitude, closest.lat, closest.lng)) {
+      return station;
+    }
+    return closest;
+  }, null);
+
+  if (closestStation) {
+    return closestStation.id;
+  } else {
+    throw new Error('No tide stations found');
+  }
 };

@@ -34,9 +34,8 @@ const SourceLink = styled.a`
 const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemperatureData }) => {
   const theme = useTheme();
 
-  const { labels, temperatures, latestReading, maxTemp, minTemp, stationName } = useMemo(() => {
-    const last72Hours = waterTemperatureData.data.slice(-72);
-    const latest = last72Hours[last72Hours.length - 1];
+  const { labels, temperatures, maxTemp, minTemp, stationName } = useMemo(() => {
+    const last72Hours = waterTemperatureData.data.slice(-12);
     const temps = last72Hours.map((item) => parseFloat(item.v));
     const max = Math.max(...temps);
     const min = Math.min(...temps);
@@ -44,17 +43,12 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
       labels: last72Hours.map((item) => {
         const date = new Date(item.t);
         return date.toLocaleString([], {
-          month: 'numeric',
-          day: 'numeric',
-          hour: '2-digit',
+          hour: 'numeric',
           minute: '2-digit',
+          hour12: true,
         });
       }),
       temperatures: temps,
-      latestReading: {
-        temperature: parseFloat(latest.v),
-        timestamp: latest.t,
-      },
       maxTemp: { value: max, index: temps.indexOf(max) },
       minTemp: { value: min, index: temps.indexOf(min) },
       stationName: waterTemperatureData.metadata.name,
