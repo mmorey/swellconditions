@@ -14,6 +14,9 @@ const theme = {
       error: 'rgba(255, 0, 0, 0.1)',
       link: '#4a90e2',
     },
+    chart: {
+      primary: '#4a90e2',
+    },
   },
 };
 

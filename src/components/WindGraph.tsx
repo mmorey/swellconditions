@@ -114,7 +114,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
       y: {
         title: {
           display: true,
-          text: 'Wind Speed (MPH)',
+          text: 'Wind Speed (mph)',
           color: theme.colors.text.primary,
         },
         ticks: {

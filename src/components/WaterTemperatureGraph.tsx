@@ -18,29 +18,18 @@ const GraphContainer = styled.div`
   border-radius: 10px;
 `;
 
-const SourceContainer = styled.div`
-  text-align: right;
-  font-size: 8px;
-`;
-
-const SourceLink = styled.a`
-  color: gray;
-  text-decoration: none;
-  &:hover {
-    text-decoration: underline;
-  }
-`;
+const hoursToGoBack = 12;
 
 const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemperatureData }) => {
   const theme = useTheme();
 
   const { labels, temperatures, maxTemp, minTemp, stationName } = useMemo(() => {
-    const last72Hours = waterTemperatureData.data.slice(-12);
-    const temps = last72Hours.map((item) => parseFloat(item.v));
+    const lastHours = waterTemperatureData.data.slice(-1 * hoursToGoBack);
+    const temps = lastHours.map((item) => parseFloat(item.v));
     const max = Math.max(...temps);
     const min = Math.min(...temps);
     return {
-      labels: last72Hours.map((item) => {
+      labels: lastHours.map((item) => {
         const date = new Date(item.t);
         return date.toLocaleString([], {
           hour: 'numeric',
@@ -61,18 +50,18 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
       {
         label: 'Latest Temperature',
         data: temperatures.map((_, index) => (index === temperatures.length - 1 ? temperatures[index] : null)),
-        pointBackgroundColor: 'green',
+        pointBackgroundColor: 'rgb(53, 162, 235)',
         pointRadius: 6,
         pointHoverRadius: 8,
         showLine: false,
         datalabels: {
-          color: 'green',
+          color: 'rgb(53, 162, 235)',
           font: {
             weight: 'bold' as const,
             size: 12,
           },
-          anchor: 'end' as const,
-          align: 'top' as const,
+          anchor: 'start' as const,
+          align: 'bottom' as const,
           offset: 5,
           formatter: (value: number | null) => (value ? `${value.toFixed(1)}°F` : ''),
         },
@@ -82,7 +71,7 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
         data: temperatures.map((_, index) => (index === maxTemp.index ? maxTemp.value : index === minTemp.index ? minTemp.value : null)),
         pointBackgroundColor: (context: ScriptableContext<'line'>) => {
           const index = context.dataIndex;
-          return index === maxTemp.index ? 'red' : index === minTemp.index ? 'blue' : 'transparent';
+          return index === maxTemp.index ? 'rgb(0, 84, 147)' : index === minTemp.index ? 'rgb(150, 206, 255)' : 'transparent';
         },
         pointRadius: 6,
         pointHoverRadius: 8,
@@ -90,7 +79,7 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
         datalabels: {
           color: (context: ScriptableContext<'line'>) => {
             const index = context.dataIndex;
-            return index === maxTemp.index ? 'red' : index === minTemp.index ? 'blue' : 'transparent';
+            return index === maxTemp.index ? 'rgb(0, 84, 147)' : index === minTemp.index ? 'rgb(150, 206, 255)' : 'transparent';
           },
           font: {
             weight: 'bold' as const,
@@ -117,13 +106,18 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
   const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
+    layout: {
+      padding: {
+        right: 20, // Increase right padding to accommodate the label
+      },
+    },
     plugins: {
       legend: {
         display: false, // Hide the legend
       },
       title: {
         display: true,
-        text: `Water Temperature at ${stationName} (Last 72 Hours)`,
+        text: `Water Temperature at ${stationName} (Last ${hoursToGoBack} Hours)`,
         color: theme.colors.text.primary,
       },
       tooltip: {
@@ -172,11 +166,6 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
     <>
       <GraphContainer>
         <Line options={options} data={data} plugins={[ChartDataLabels]} />
-        <SourceContainer>
-          <SourceLink href="#" target="_blank" rel="noopener noreferrer">
-            NOAA CO-OPS API
-          </SourceLink>
-        </SourceContainer>
       </GraphContainer>
     </>
   );
