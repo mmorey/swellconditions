@@ -1,4 +1,11 @@
-import { TidesAndCurrentsGovAPIResponse, TideStation } from './TidesAndCurrentsGovTypes';
+import {
+  TidesAndCurrentsGovWaterTemperatureAPIResponse,
+  TideStation,
+  TidesAndCurrentsGovWaterLevelAPIResponse,
+  TidesAndCurrentsGovTideHiLoPredictionAPIResponse,
+  TidesAndCurrentsGovTideDetailedPredictionAPIResponse,
+  WaterLevelData,
+} from './TidesAndCurrentsGovTypes';
 import { calculateDistance } from '../utils';
 
 const headers = {};
@@ -20,7 +27,18 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, de
   }
 };
 
-export const fetchWaterTemperatureData = async (stationId: string): Promise<TidesAndCurrentsGovAPIResponse> => {
+const formatDate = (date: Date): string => {
+  const formattedDate = date
+    .toLocaleDateString('en-CA', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    })
+    .replace(/-/g, '');
+  return formattedDate;
+};
+
+export const fetchWaterTemperatureData = async (stationId: string): Promise<TidesAndCurrentsGovWaterTemperatureAPIResponse> => {
   const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${stationId}&product=water_temperature&datum=MLLW&time_zone=lst_ldt&units=english&format=json&date=recent&interval=h`;
 
   const response = await fetchWithRetry(url, { headers });
@@ -29,8 +47,61 @@ export const fetchWaterTemperatureData = async (stationId: string): Promise<Tide
     throw new Error(`HTTP error! status: ${response.status}`);
   }
 
-  const data: TidesAndCurrentsGovAPIResponse = await response.json();
+  const data: TidesAndCurrentsGovWaterTemperatureAPIResponse = await response.json();
 
+  return data;
+};
+
+export const fetchWaterLevelData = async (stationId: string): Promise<TidesAndCurrentsGovWaterLevelAPIResponse> => {
+  const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${stationId}&product=water_level&datum=MLLW&time_zone=lst_ldt&units=english&format=json&application=GoingOff&date=latest&range=48`;
+
+  const response = await fetchWithRetry(url, { headers });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data: TidesAndCurrentsGovWaterLevelAPIResponse = await response.json();
+
+  return data;
+};
+
+export const fetchTideHiLoPredictions = async (stationId: string): Promise<TidesAndCurrentsGovTideHiLoPredictionAPIResponse> => {
+  const formattedDate = formatDate(new Date());
+  const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${formattedDate}&station=${stationId}&product=predictions&interval=hilo&datum=MLLW&time_zone=lst_ldt&units=english&format=json&range=48`;
+
+  const response = await fetchWithRetry(url, { headers });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data: TidesAndCurrentsGovTideHiLoPredictionAPIResponse = await response.json();
+
+  return data;
+};
+
+export const fetchDetailedTidePredictions = async (stationId: string): Promise<TidesAndCurrentsGovTideDetailedPredictionAPIResponse> => {
+  const formattedDate = formatDate(new Date());
+  const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${formattedDate}&station=${stationId}&product=predictions&interval=30&datum=MLLW&time_zone=lst_ldt&units=english&format=json&range=48`;
+
+  const response = await fetchWithRetry(url, { headers });
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const data: TidesAndCurrentsGovTideDetailedPredictionAPIResponse = await response.json();
+
+  return data;
+};
+
+export const fetchWaterLevel = async (stationId: string): Promise<WaterLevelData> => {
+  const waterLevelData = await fetchWaterLevelData(stationId);
+  const tideHiLoPredictionData = await fetchTideHiLoPredictions(stationId);
+  const tideDetailedPredicitonData = await fetchDetailedTidePredictions(stationId);
+
+  const data: WaterLevelData = { waterLevel: waterLevelData, tideHiLoPrediction: tideHiLoPredictionData, tideDetailedPrediction: tideDetailedPredicitonData };
   return data;
 };
 

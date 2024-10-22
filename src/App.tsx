@@ -4,8 +4,8 @@ import { BrowserRouter, useSearchParams } from 'react-router-dom';
 import { WeatherData } from './APIClients/WeatherGovTypes';
 import WindGraph from './components/WindGraph';
 import { fetchWeatherData, processWeatherGovWindData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
-import { fetchWaterTemperatureData, findClosestTideStation } from './APIClients/TidesAndCurrentsGovAPI';
-import { TidesAndCurrentsGovAPIResponse } from './APIClients/TidesAndCurrentsGovTypes';
+import { fetchWaterTemperatureData, findClosestTideStation, fetchWaterLevel } from './APIClients/TidesAndCurrentsGovAPI';
+import { TidesAndCurrentsGovWaterTemperatureAPIResponse, WaterLevelData } from './APIClients/TidesAndCurrentsGovTypes';
 import CurrentConditions from './components/CurrentConditions';
 import SunInformation from './components/SunInformation';
 import WaterTemperatureGraph from './components/WaterTemperatureGraph';
@@ -80,7 +80,8 @@ const AppContent: React.FC = () => {
   const longitude = parseFloat(searchParams.get('lon') || '-122.4194');
   const [tideStation, setTideStation] = useState<string | null>(searchParams.get('tideStation'));
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
-  const [waterTempData, setWaterTempData] = useState<TidesAndCurrentsGovAPIResponse | null>(null);
+  const [waterTempData, setWaterTempData] = useState<TidesAndCurrentsGovWaterTemperatureAPIResponse | null>(null);
+  const [waterLevelData, setWaterLevelData] = useState<WaterLevelData | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [csvDataUrl, setCsvDataUrl] = useState<string | null>(null);
@@ -101,9 +102,14 @@ const AppContent: React.FC = () => {
         }
 
         const waterTempPromise = fetchWaterTemperatureData(selectedTideStation);
-        const [weatherResult, waterTempResult] = await Promise.all([weatherPromise, waterTempPromise]);
+        const waterLevelPromise = fetchWaterLevel(selectedTideStation);
+        const [weatherResult, waterTempResult, waterLevelResult] = await Promise.all([weatherPromise, waterTempPromise, waterLevelPromise]);
         setWeatherData(weatherResult);
         setWaterTempData(waterTempResult);
+        setWaterLevelData(waterLevelResult);
+
+        // Console log the water level data
+        console.log('Water Level Data:', JSON.stringify(waterLevelResult, null, 2));
       } catch (e) {
         setError(`Failed to fetch data: ${e instanceof Error ? e.message : String(e)}`);
       } finally {

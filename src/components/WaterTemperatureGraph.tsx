@@ -3,12 +3,12 @@ import styled, { useTheme } from 'styled-components';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartDataset, ScriptableContext } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { TidesAndCurrentsGovAPIResponse } from '../APIClients/TidesAndCurrentsGovTypes';
+import { TidesAndCurrentsGovWaterTemperatureAPIResponse } from '../APIClients/TidesAndCurrentsGovTypes';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 interface WaterTemperatureGraphProps {
-  waterTemperatureData: TidesAndCurrentsGovAPIResponse;
+  waterTemperatureData: TidesAndCurrentsGovWaterTemperatureAPIResponse;
 }
 
 const GraphContainer = styled.div`
