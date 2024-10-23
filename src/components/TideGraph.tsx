@@ -3,12 +3,13 @@ import styled, { useTheme } from 'styled-components';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartDataset } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { TidesAndCurrentsGovTideDetailedPredictionAPIResponse } from '../APIClients/TidesAndCurrentsGovTypes';
+import { TidesAndCurrentsGovTideDetailedPredictionAPIResponse, TidesAndCurrentsGovTideHiLoPredictionAPIResponse } from '../APIClients/TidesAndCurrentsGovTypes';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 interface TideGraphProps {
   tideData: TidesAndCurrentsGovTideDetailedPredictionAPIResponse;
+  tideHiLoData: TidesAndCurrentsGovTideHiLoPredictionAPIResponse;
   stationName: string;
 }
 
@@ -21,67 +22,101 @@ const GraphContainer = styled.div`
 
 const hoursToShow = 2 * 24; // Show 24 hours of tide data, results are every 30 minutes
 
-const TideGraph: React.FC<TideGraphProps> = ({ tideData, stationName }) => {
+const TideGraph: React.FC<TideGraphProps> = ({ tideData, tideHiLoData, stationName }) => {
   const theme = useTheme();
 
-  const { labels, heights, maxHeight, minHeight } = useMemo(() => {
-    const predictions = tideData.predictions.slice(0, hoursToShow);
-    const heightValues = predictions.map((item) => parseFloat(item.v));
-    const max = Math.max(...heightValues);
-    const min = Math.min(...heightValues);
+  const { detailedData, hiLoData } = useMemo(() => {
+    // Get the start and end time from detailed predictions
+    const startTime = new Date(tideData.predictions[0].t).getTime();
+    const endTime = new Date(tideData.predictions[hoursToShow - 1].t).getTime();
+
+    // Process detailed predictions
+    const detailedPredictions = tideData.predictions.slice(0, hoursToShow);
+    const detailedLabels = detailedPredictions.map((item) => {
+      const [datePart, timePart] = item.t.split(' ');
+      const date = new Date(`${datePart}T${timePart}Z`);
+      return date.toLocaleString([], {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true,
+      });
+    });
+    const detailedHeights = detailedPredictions.map((item) => parseFloat(item.v));
+
+    // Process hi/lo predictions within the time range
+    const hiLoPredictions = tideHiLoData.predictions.filter((prediction) => {
+      const time = new Date(prediction.t).getTime();
+      return time >= startTime && time <= endTime;
+    });
+
+    // Create sparse arrays for hi/lo data
+    const hiLoPoints = new Array(detailedLabels.length).fill(null);
+    const hiLoTypes = new Array(detailedLabels.length).fill(null);
+
+    hiLoPredictions.forEach((hiLo) => {
+      const hiLoTime = new Date(hiLo.t).getTime();
+      // Find the closest detailed prediction time
+      const index = detailedPredictions.findIndex((detailed) => {
+        const detailedTime = new Date(detailed.t).getTime();
+        return Math.abs(detailedTime - hiLoTime) <= 15 * 60 * 1000; // Within 15 minutes
+      });
+
+      if (index !== -1) {
+        hiLoPoints[index] = parseFloat(hiLo.v);
+        hiLoTypes[index] = hiLo.type;
+      }
+    });
 
     return {
-      labels: predictions.map((item) => {
-        const [datePart, timePart] = item.t.split(' ');
-        const date = new Date(`${datePart}T${timePart}Z`);
-        return date.toLocaleString([], {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-        });
-      }),
-      heights: heightValues,
-      maxHeight: { value: max, index: heightValues.indexOf(max) },
-      minHeight: { value: min, index: heightValues.indexOf(min) },
+      detailedData: {
+        labels: detailedLabels,
+        heights: detailedHeights,
+      },
+      hiLoData: {
+        points: hiLoPoints,
+        types: hiLoTypes,
+      },
     };
-  }, [tideData]);
+  }, [tideData, tideHiLoData]);
 
   const data = {
-    labels,
+    labels: detailedData.labels,
     datasets: [
       {
-        label: 'Max/Min Height',
-        data: heights.map((_, index) => (index === maxHeight.index ? maxHeight.value : index === minHeight.index ? minHeight.value : null)),
-        pointBackgroundColor: (context: any) => {
-          const index = context.dataIndex;
-          return index === maxHeight.index ? 'rgb(0, 84, 147)' : index === minHeight.index ? 'rgb(150, 206, 255)' : 'transparent';
-        },
-        pointRadius: 6,
-        pointHoverRadius: 8,
-        showLine: false,
-        datalabels: {
-          color: (context: any) => {
-            const index = context.dataIndex;
-            return index === maxHeight.index ? 'rgb(0, 84, 147)' : index === minHeight.index ? 'rgb(150, 206, 255)' : 'transparent';
-          },
-          font: {
-            weight: 'bold' as const,
-            size: 12,
-          },
-          anchor: 'end' as const,
-          align: 'top' as const,
-          offset: 5,
-          formatter: (value: number | null) => (value ? `${value.toFixed(1)}ft` : ''),
-        },
-      },
-      {
-        label: 'Tide Height (ft)',
-        data: heights,
+        label: 'Tide Height',
+        data: detailedData.heights,
         borderColor: 'rgb(75, 192, 192)',
         backgroundColor: 'rgba(75, 192, 192, 0.5)',
         tension: 0.4,
         datalabels: {
           display: false,
+        },
+      },
+      {
+        label: 'High/Low Points',
+        data: hiLoData.points,
+        borderColor: 'rgb(255, 99, 132)',
+        backgroundColor: 'rgb(255, 99, 132)',
+        pointRadius: 6,
+        pointHoverRadius: 8,
+        showLine: false,
+        datalabels: {
+          display: (context) => hiLoData.types[context.dataIndex] !== null,
+          color: theme.colors.text.primary,
+          formatter: (value: number, context) => {
+            const type = hiLoData.types[context.dataIndex];
+            const typeLabel = type === 'H' || type === 'HH' ? 'High' : 'Low';
+            return `${typeLabel}\n${value.toFixed(1)}ft`;
+          },
+          anchor: (context) => {
+            const type = hiLoData.types[context.dataIndex];
+            return type === 'H' || type === 'HH' ? 'bottom' : 'top';
+          },
+          align: (context) => {
+            const type = hiLoData.types[context.dataIndex];
+            return type === 'H' || type === 'HH' ? 'bottom' : 'top';
+          },
+          offset: 8,
         },
       },
     ] as ChartDataset<'line', (number | null)[]>[],
@@ -93,6 +128,8 @@ const TideGraph: React.FC<TideGraphProps> = ({ tideData, stationName }) => {
     layout: {
       padding: {
         right: 20,
+        top: 30,
+        bottom: 30,
       },
     },
     plugins: {
@@ -107,11 +144,12 @@ const TideGraph: React.FC<TideGraphProps> = ({ tideData, stationName }) => {
       tooltip: {
         callbacks: {
           label: (context) => {
-            const index = context.dataIndex;
-            if (index === maxHeight.index) {
-              return `High Tide: ${maxHeight.value.toFixed(1)}ft`;
-            } else if (index === minHeight.index) {
-              return `Low Tide: ${minHeight.value.toFixed(1)}ft`;
+            const datasetIndex = context.datasetIndex;
+            if (datasetIndex === 1) {
+              // Hi/Lo dataset
+              const type = hiLoData.types[context.dataIndex];
+              const typeLabel = type === 'H' || type === 'HH' ? 'High' : 'Low';
+              return `${typeLabel} Tide: ${context.parsed.y.toFixed(1)}ft`;
             }
             return `Height: ${context.parsed.y.toFixed(1)}ft`;
           },
