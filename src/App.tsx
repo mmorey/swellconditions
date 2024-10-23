@@ -9,6 +9,7 @@ import { TidesAndCurrentsGovWaterTemperatureAPIResponse, WaterLevelData } from '
 import CurrentConditions from './components/CurrentConditions';
 import SunInformation from './components/SunInformation';
 import WaterTemperatureGraph from './components/WaterTemperatureGraph';
+import TideGraph from './components/TideGraph';
 
 // Debug flag
 const DEBUG_MODE = true;
@@ -151,6 +152,7 @@ const AppContent: React.FC = () => {
           <CurrentConditions weatherData={weatherData} queriedLat={latitude} queriedLon={longitude} />
           <WindGraph data={windData} />
           <WaterTemperatureGraph waterTemperatureData={waterTempData} />
+          {waterLevelData && <TideGraph tideData={waterLevelData.tideDetailedPrediction} stationName={waterLevelData.waterLevel.metadata.name} />}
           {DEBUG_MODE && csvDataUrl && (
             <DownloadLink href={csvDataUrl} download="weather_data.csv">
               Download Debug CSV
@@ -162,6 +164,7 @@ const AppContent: React.FC = () => {
           <PlaceholderContainer>Current conditions unavailable</PlaceholderContainer>
           <PlaceholderContainer>Wind graph unavailable</PlaceholderContainer>
           <PlaceholderContainer>Water temperature graph unavailable</PlaceholderContainer>
+          <PlaceholderContainer>Tide graph unavailable</PlaceholderContainer>
         </>
       )}
     </AppContainer>
