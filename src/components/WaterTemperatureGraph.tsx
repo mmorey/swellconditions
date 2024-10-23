@@ -30,13 +30,15 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
     const min = Math.min(...temps);
     return {
       labels: lastHours.map((item) => {
-        const date = new Date(item.t);
+        const [datePart, timePart] = item.t.split(' ');
+        const date = new Date(`${datePart}T${timePart}Z`);
         return date.toLocaleString([], {
           hour: 'numeric',
           minute: '2-digit',
           hour12: true,
         });
       }),
+
       temperatures: temps,
       maxTemp: { value: max, index: temps.indexOf(max) },
       minTemp: { value: min, index: temps.indexOf(min) },
