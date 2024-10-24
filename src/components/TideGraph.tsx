@@ -104,7 +104,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
           formatter: (value: number, context) => {
             const type = hiLoData.types[context.dataIndex];
             const typeLabel = type === 'H' || type === 'HH' ? 'High' : 'Low';
-            return `${typeLabel}\n${value.toFixed(1)}ft}`;
+            return `${typeLabel}\n${value.toFixed(1)}ft`;
           },
           anchor: (context) => {
             const type = hiLoData.types[context.dataIndex];
