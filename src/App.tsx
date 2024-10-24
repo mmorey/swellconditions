@@ -152,7 +152,7 @@ const AppContent: React.FC = () => {
           <CurrentConditions weatherData={weatherData} queriedLat={latitude} queriedLon={longitude} />
           <WindGraph data={windData} />
           <WaterTemperatureGraph waterTemperatureData={waterTempData} />
-          {waterLevelData && <TideGraph tideData={waterLevelData.tideDetailedPrediction} tideHiLoData={waterLevelData.tideHiLoPrediction} stationName={waterLevelData.waterLevel.metadata.name} />}
+          {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
           {DEBUG_MODE && csvDataUrl && (
             <DownloadLink href={csvDataUrl} download="weather_data.csv">
               Download Debug CSV

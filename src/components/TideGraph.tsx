@@ -3,14 +3,12 @@ import styled, { useTheme } from 'styled-components';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartDataset } from 'chart.js';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
-import { TidesAndCurrentsGovTideDetailedPredictionAPIResponse, TidesAndCurrentsGovTideHiLoPredictionAPIResponse } from '../APIClients/TidesAndCurrentsGovTypes';
+import { WaterLevelData } from '../APIClients/TidesAndCurrentsGovTypes';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 interface TideGraphProps {
-  tideData: TidesAndCurrentsGovTideDetailedPredictionAPIResponse;
-  tideHiLoData: TidesAndCurrentsGovTideHiLoPredictionAPIResponse;
-  stationName: string;
+  waterLevelData: WaterLevelData;
 }
 
 const GraphContainer = styled.div`
@@ -22,16 +20,16 @@ const GraphContainer = styled.div`
 
 const hoursToShow = 2 * 24; // Show 24 hours of tide data, results are every 30 minutes
 
-const TideGraph: React.FC<TideGraphProps> = ({ tideData, tideHiLoData, stationName }) => {
+const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
   const theme = useTheme();
 
   const { detailedData, hiLoData } = useMemo(() => {
     // Get the start and end time from detailed predictions
-    const startTime = new Date(tideData.predictions[0].t).getTime();
-    const endTime = new Date(tideData.predictions[hoursToShow - 1].t).getTime();
+    const startTime = new Date(waterLevelData.tideDetailedPrediction.predictions[0].t).getTime();
+    const endTime = new Date(waterLevelData.tideDetailedPrediction.predictions[hoursToShow - 1].t).getTime();
 
     // Process detailed predictions
-    const detailedPredictions = tideData.predictions.slice(0, hoursToShow);
+    const detailedPredictions = waterLevelData.tideDetailedPrediction.predictions.slice(0, hoursToShow);
     const detailedLabels = detailedPredictions.map((item) => {
       const [datePart, timePart] = item.t.split(' ');
       const date = new Date(`${datePart}T${timePart}Z`);
@@ -44,7 +42,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ tideData, tideHiLoData, stationNa
     const detailedHeights = detailedPredictions.map((item) => parseFloat(item.v));
 
     // Process hi/lo predictions within the time range
-    const hiLoPredictions = tideHiLoData.predictions.filter((prediction) => {
+    const hiLoPredictions = waterLevelData.tideHiLoPrediction.predictions.filter((prediction) => {
       const time = new Date(prediction.t).getTime();
       return time >= startTime && time <= endTime;
     });
@@ -77,7 +75,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ tideData, tideHiLoData, stationNa
         types: hiLoTypes,
       },
     };
-  }, [tideData, tideHiLoData]);
+  }, [waterLevelData]);
 
   const data = {
     labels: detailedData.labels,
@@ -106,7 +104,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ tideData, tideHiLoData, stationNa
           formatter: (value: number, context) => {
             const type = hiLoData.types[context.dataIndex];
             const typeLabel = type === 'H' || type === 'HH' ? 'High' : 'Low';
-            return `${typeLabel}\n${value.toFixed(1)}ft`;
+            return `${typeLabel}\n${value.toFixed(1)}ft}`;
           },
           anchor: (context) => {
             const type = hiLoData.types[context.dataIndex];
@@ -138,7 +136,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ tideData, tideHiLoData, stationNa
       },
       title: {
         display: true,
-        text: `Tide Predictions at ${stationName} (Next ${hoursToShow} Hours)`,
+        text: `Tide Predictions at ${waterLevelData.waterLevel.metadata.name} (Next ${hoursToShow} Hours)`,
         color: theme.colors.text.primary,
       },
       tooltip: {
