@@ -39,7 +39,7 @@ const formatDate = (date: Date): string => {
 };
 
 export const fetchWaterTemperatureData = async (stationId: string): Promise<TidesAndCurrentsGovWaterTemperatureAPIResponse> => {
-  const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${stationId}&product=water_temperature&datum=MLLW&time_zone=gmt&units=english&format=json&date=recent&interval=h`;
+  const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${stationId}&product=water_temperature&datum=MLLW&time_zone=gmt&units=english&format=json&date=recent&interval=15`;
 
   const response = await fetchWithRetry(url, { headers });
 
@@ -83,7 +83,7 @@ export const fetchTideHiLoPredictions = async (stationId: string): Promise<Tides
 
 export const fetchDetailedTidePredictions = async (stationId: string): Promise<TidesAndCurrentsGovTideDetailedPredictionAPIResponse> => {
   const formattedDate = formatDate(new Date());
-  const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${formattedDate}&station=${stationId}&product=predictions&interval=30&datum=MLLW&time_zone=gmt&units=english&format=json&range=48`;
+  const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${formattedDate}&station=${stationId}&product=predictions&interval=15&datum=MLLW&time_zone=gmt&units=english&format=json&range=48`;
 
   const response = await fetchWithRetry(url, { headers });
 

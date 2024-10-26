@@ -36,10 +36,13 @@ const convertGMTtoLocal = (gmtString: string): Date => {
 const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
   const theme = useTheme();
 
-  const { detailedData, hiLoData, yAxisRange, now } = useMemo(() => {
+  const { detailedData, hiLoData, yAxisRange, now, currentWaterLevel } = useMemo(() => {
     // Get current time
     const now = new Date();
     const currentHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
+
+    // Get the latest water level reading
+    const currentWaterLevel = waterLevelData.waterLevel.data[waterLevelData.waterLevel.data.length - 1]?.v;
 
     // Find the prediction that corresponds to the current hour
     const allPredictions = waterLevelData.tideDetailedPrediction.predictions;
@@ -98,6 +101,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
         max: Math.ceil(maxHeight + padding),
       },
       now,
+      currentWaterLevel,
     };
   }, [waterLevelData]);
 
@@ -119,7 +123,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
         color: theme.colors.text.primary,
         formatter: (value: any) => {
           const typeLabel = value.type === 'H' || value.type === 'HH' ? 'High' : 'Low';
-          return `${typeLabel}\n${value.y.toFixed(1)}ft`;
+          return `${typeLabel}\n${value.y.toFixed(1)} ft`;
         },
         anchor: (context: Context) => {
           const dataPoint = context.dataset.data[context.dataIndex] as unknown as HiLoDataPoint;
@@ -157,7 +161,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
       },
       title: {
         display: true,
-        text: `Tide Predictions at ${waterLevelData.waterLevel.metadata.name} (Next 24 Hours)`,
+        text: `Tides at ${waterLevelData.waterLevel.metadata.name} (${waterLevelData.waterLevel.metadata.id})`,
         color: theme.colors.text.primary,
       },
       tooltip: {
@@ -168,9 +172,9 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
               // Hi/Lo dataset
               const point = context.raw as HiLoDataPoint;
               const typeLabel = point.type === 'H' || point.type === 'HH' ? 'High' : 'Low';
-              return `${typeLabel} Tide: ${point.y.toFixed(1)}ft`;
+              return `${typeLabel} Tide: ${point.y.toFixed(1)} ft`;
             }
-            return `Height: ${context.parsed.y.toFixed(1)}ft`;
+            return `Height: ${context.parsed.y.toFixed(1)} ft`;
           },
         },
       },
@@ -182,10 +186,9 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
             xMax: now.getTime(),
             borderColor: theme.colors.text.primary,
             borderWidth: 1,
-
             label: {
               display: true,
-              content: 'Now',
+              content: currentWaterLevel ? `${parseFloat(currentWaterLevel).toFixed(1)} ft` : 'Now',
               position: 'start',
               backgroundColor: theme.colors.backgroundLight,
               color: theme.colors.text.primary,

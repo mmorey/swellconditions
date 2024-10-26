@@ -108,9 +108,6 @@ const AppContent: React.FC = () => {
         setWeatherData(weatherResult);
         setWaterTempData(waterTempResult);
         setWaterLevelData(waterLevelResult);
-
-        // Console log the water level data
-        console.log('Water Level Data:', JSON.stringify(waterLevelResult, null, 2));
       } catch (e) {
         setError(`Failed to fetch data: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
