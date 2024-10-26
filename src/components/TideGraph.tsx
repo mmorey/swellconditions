@@ -75,7 +75,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
     const minHeight = Math.min(...allHeights);
     const maxHeight = Math.max(...allHeights);
     const range = maxHeight - minHeight;
-    const padding = range * 0.2; // Add 20% padding
+    const padding = range * 0.4; // Add 20% padding
 
     return {
       detailedData: {
@@ -110,7 +110,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
         color: theme.colors.text.primary,
         formatter: (value: any) => {
           const typeLabel = value.type === 'H' || value.type === 'HH' ? 'High' : 'Low';
-          return `${typeLabel}\n${value.y.toFixed(1)} ft`;
+          return `${typeLabel}\n${value.y.toFixed(1)} ft - ${value.x.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`;
         },
         anchor: (context: Context) => {
           const dataPoint = context.dataset.data[context.dataIndex] as unknown as HiLoDataPoint;
@@ -120,7 +120,9 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
           const dataPoint = context.dataset.data[context.dataIndex] as unknown as HiLoDataPoint;
           return dataPoint.type === 'H' || dataPoint.type === 'HH' ? 'end' : 'start';
         },
-        offset: 8,
+        offset: 4,
+        textAlign: 'center',
+        backgroundColor: theme.colors.backgroundLight,
       },
     },
     {

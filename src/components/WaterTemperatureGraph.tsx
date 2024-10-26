@@ -81,7 +81,7 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
 
     // Get the latest temperature reading
     const latestTemperature = temps[temps.length - 1];
-    const lastActualTime = timePoints[timePoints.length - 1];
+    const latestTime = timePoints[timePoints.length - 1];
 
     // Filter to only show data points on the hour
     const hourlyData = recentData.filter((_, index) => {
@@ -91,6 +91,17 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
     const hourlyTemps = hourlyData.map((item) => parseFloat(item.v));
     const hourlyTimePoints = hourlyData.map((item) => parseISO(item.t.replace(' ', 'T') + 'Z'));
 
+    // Add the latest reading if it's not already included (i.e., not on the hour)
+    if (latestTime.getMinutes() !== 0) {
+      hourlyTimePoints.push(latestTime);
+      hourlyTemps.push(latestTemperature);
+    }
+
+    // Sort the arrays by time
+    const sortedIndices = hourlyTimePoints.map((_, idx) => idx).sort((a, b) => hourlyTimePoints[a].getTime() - hourlyTimePoints[b].getTime());
+    const sortedTimes = sortedIndices.map((idx) => hourlyTimePoints[idx]);
+    const sortedTemps = sortedIndices.map((idx) => hourlyTemps[idx]);
+
     // Calculate EMA for trend detection (using all data)
     const ema = calculateEMA(allTemps, 12); // 12-hour EMA
     const recentTrend = ema[ema.length - 1] - ema[ema.length - 2];
@@ -99,11 +110,11 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
     const { amplitude, phase, offset } = fitSinusoidalPattern(allTimes, allTemps);
 
     // Calculate how many hours we need to predict
-    const hoursToPredict = Math.ceil(differenceInHours(endTime, lastActualTime)) + 1;
+    const hoursToPredict = Math.ceil(differenceInHours(endTime, latestTime)) + 1;
 
     // Generate future times (on the hour only)
     const futureTimes = Array.from({ length: hoursToPredict }, (_, i) => {
-      const futureTime = addHours(lastActualTime, i + 1);
+      const futureTime = addHours(latestTime, i + 1);
       return setMilliseconds(setSeconds(setMinutes(futureTime, 0), 0), 0);
     });
 
@@ -125,22 +136,22 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
     });
 
     // Calculate y-axis scale with padding
-    const allTemperatures = [...hourlyTemps, ...predictedTemps];
+    const allTemperatures = [...sortedTemps, ...predictedTemps];
     const minTemp = Math.min(...allTemperatures);
     const maxTemp = Math.max(...allTemperatures);
     const range = maxTemp - minTemp;
     const padding = range * 0.2; // Add 20% padding
 
     return {
-      times: hourlyTimePoints,
-      temperatures: hourlyTemps,
+      times: sortedTimes,
+      temperatures: sortedTemps,
       predictedTimes: futureTimes,
       predictedTemperatures: predictedTemps,
       stationName: waterTemperatureData.metadata.name,
       stationID: waterTemperatureData.metadata.id,
       yAxisScale: {
-        min: minTemp - padding,
-        max: maxTemp + padding,
+        min: Math.floor(minTemp - padding),
+        max: Math.ceil(maxTemp + padding),
       },
       now,
       latestTemperature,
