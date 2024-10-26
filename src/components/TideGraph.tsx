@@ -5,7 +5,7 @@ import { Chart as ChartJS, TimeScale, LinearScale, PointElement, LineElement, Ti
 import ChartDataLabels, { Context } from 'chartjs-plugin-datalabels';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import 'chartjs-adapter-date-fns';
-import { parseISO, addHours, subHours } from 'date-fns';
+import { parseISO, addHours, subHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
 import { WaterLevelData } from '../APIClients/TidesAndCurrentsGovTypes';
 
 ChartJS.register(TimeScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, annotationPlugin);
@@ -37,32 +37,19 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
   const theme = useTheme();
 
   const { detailedData, hiLoData, yAxisRange, now, currentWaterLevel } = useMemo(() => {
-    // Get current time
+    // Get current time and round it to the nearest hour
     const now = new Date();
-    const currentHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
+    const currentHour = setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0);
+
+    // Calculate exact start and end times
+    const startTime = subHours(currentHour, 3);
+    const endTime = addHours(startTime, 24);
 
     // Get the latest water level reading
     const currentWaterLevel = waterLevelData.waterLevel.data[waterLevelData.waterLevel.data.length - 1]?.v;
 
-    // Find the prediction that corresponds to the current hour
-    const allPredictions = waterLevelData.tideDetailedPrediction.predictions;
-    let startIndex = 0;
-
-    // Find the closest prediction to current time
-    for (let i = 0; i < allPredictions.length; i++) {
-      const predTime = convertGMTtoLocal(allPredictions[i].t);
-      if (predTime >= currentHour) {
-        startIndex = i;
-        break;
-      }
-    }
-
-    // Calculate start and end times
-    const startTime = subHours(convertGMTtoLocal(allPredictions[startIndex].t), 3);
-    const endTime = addHours(startTime, 24);
-
     // Filter predictions to get only the next 24 hours of data
-    const detailedPredictions = allPredictions.filter((prediction) => {
+    const detailedPredictions = waterLevelData.tideDetailedPrediction.predictions.filter((prediction) => {
       const predTime = convertGMTtoLocal(prediction.t);
       return predTime >= startTime && predTime <= endTime;
     });
@@ -210,9 +197,17 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
         },
         ticks: {
           color: theme.colors.text.primary,
+          padding: 8,
+          // Add padding to match the width of temperature values
+          callback: function (value) {
+            return value.toString().padStart(5, ' ');
+          },
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
+        },
+        afterFit: (scaleInstance) => {
+          scaleInstance.width = 60; // Fixed width to match WaterTemperatureGraph
         },
       },
       x: {
@@ -224,8 +219,11 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
           },
           tooltipFormat: 'PPpp', // Detailed format for tooltip
         },
+        min: subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 3).getTime(),
+        max: addHours(subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 3), 24).getTime(),
         ticks: {
           color: theme.colors.text.primary,
+          padding: 8,
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',

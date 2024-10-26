@@ -6,7 +6,7 @@ import ChartDataLabels from 'chartjs-plugin-datalabels';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { TidesAndCurrentsGovWaterTemperatureAPIResponse } from '../APIClients/TidesAndCurrentsGovTypes';
 import 'chartjs-adapter-date-fns';
-import { parseISO, addHours, differenceInHours, subHours, isAfter, getMinutes, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
+import { parseISO, addHours, differenceInHours, subHours, isAfter, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
 
 ChartJS.register(TimeScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, annotationPlugin);
 
@@ -20,8 +20,6 @@ const GraphContainer = styled.div`
   padding: 10px;
   border-radius: 10px;
 `;
-
-const hoursToGoBack = 3;
 
 // Helper function to calculate exponential moving average
 const calculateEMA = (data: number[], periods: number): number[] => {
@@ -63,24 +61,21 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
   const theme = useTheme();
 
   const { times, temperatures, predictedTimes, predictedTemperatures, stationName, stationID, yAxisScale, now, latestTemperature } = useMemo(() => {
-    // Get current time
+    // Get current time and round it to the nearest hour
     const now = new Date();
+    const currentHour = setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0);
+
+    // Calculate exact start and end times
+    const startTime = subHours(currentHour, 3);
+    const endTime = addHours(startTime, 24);
 
     // Get all historical data
     const allData = waterTemperatureData.data;
     const allTemps = allData.map((item) => parseFloat(item.v));
     const allTimes = allData.map((item) => parseISO(item.t.replace(' ', 'T') + 'Z'));
 
-    // Calculate rounded start time (3 hours back, rounded down to nearest hour)
-    const lastTime = allTimes[allTimes.length - 1];
-    const threeHoursBack = subHours(lastTime, hoursToGoBack);
-    const roundedStartTime = setMilliseconds(setSeconds(setMinutes(threeHoursBack, 0), 0), 0);
-
-    // Calculate rounded end time (24 hours from rounded start time)
-    const roundedEndTime = addHours(roundedStartTime, 24);
-
-    // Filter data from rounded start time
-    const recentData = allData.filter((_, index) => isAfter(allTimes[index], roundedStartTime) || allTimes[index].getTime() === roundedStartTime.getTime());
+    // Filter data from start time
+    const recentData = allData.filter((_, index) => isAfter(allTimes[index], startTime) || allTimes[index].getTime() === startTime.getTime());
     const temps = recentData.map((item) => parseFloat(item.v));
     const timePoints = recentData.map((item) => parseISO(item.t.replace(' ', 'T') + 'Z'));
 
@@ -89,7 +84,10 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
     const lastActualTime = timePoints[timePoints.length - 1];
 
     // Filter to only show data points on the hour
-    const hourlyData = recentData.filter((_, index) => getMinutes(timePoints[index]) === 0);
+    const hourlyData = recentData.filter((_, index) => {
+      const time = timePoints[index];
+      return time.getMinutes() === 0;
+    });
     const hourlyTemps = hourlyData.map((item) => parseFloat(item.v));
     const hourlyTimePoints = hourlyData.map((item) => parseISO(item.t.replace(' ', 'T') + 'Z'));
 
@@ -100,13 +98,13 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
     // Fit sinusoidal pattern to historical data (using all data)
     const { amplitude, phase, offset } = fitSinusoidalPattern(allTimes, allTemps);
 
-    // Calculate how many hours we need to predict to reach the rounded end time
-    const hoursToPredict = Math.ceil(differenceInHours(roundedEndTime, lastActualTime)) + 1;
+    // Calculate how many hours we need to predict
+    const hoursToPredict = Math.ceil(differenceInHours(endTime, lastActualTime)) + 1;
 
     // Generate future times (on the hour only)
     const futureTimes = Array.from({ length: hoursToPredict }, (_, i) => {
       const futureTime = addHours(lastActualTime, i + 1);
-      return futureTime;
+      return setMilliseconds(setSeconds(setMinutes(futureTime, 0), 0), 0);
     });
 
     // Generate predictions combining sinusoidal pattern and trend
@@ -238,9 +236,13 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
         },
         ticks: {
           color: theme.colors.text.primary,
+          padding: 8,
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
+        },
+        afterFit: (scaleInstance) => {
+          scaleInstance.width = 60; // Fixed width for y-axis
         },
       },
       x: {
@@ -252,8 +254,11 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
           },
           tooltipFormat: 'PPpp',
         },
+        min: subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 3).getTime(),
+        max: addHours(subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 3), 24).getTime(),
         ticks: {
           color: theme.colors.text.primary,
+          padding: 8,
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
