@@ -1,15 +1,13 @@
 import React, { useMemo } from 'react';
 import styled, { useTheme } from 'styled-components';
 import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartDataset } from 'chart.js';
-import ChartDataLabels from 'chartjs-plugin-datalabels';
+import { Chart as ChartJS, TimeScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartDataset } from 'chart.js';
+import ChartDataLabels, { Context } from 'chartjs-plugin-datalabels';
+import 'chartjs-adapter-date-fns';
+import { parseISO, addHours, subHours } from 'date-fns';
 import { WaterLevelData } from '../APIClients/TidesAndCurrentsGovTypes';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
-
-interface TideGraphProps {
-  waterLevelData: WaterLevelData;
-}
+ChartJS.register(TimeScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
 const GraphContainer = styled.div`
   height: 300px;
@@ -18,125 +16,146 @@ const GraphContainer = styled.div`
   border-radius: 10px;
 `;
 
-const hoursToShow = 2 * 24; // Show 24 hours of tide data, results are every 30 minutes
+interface TideGraphProps {
+  waterLevelData: WaterLevelData;
+}
+type HiLoDataPoint = {
+  x: Date;
+  y: number;
+  type: string;
+};
+
+// Helper function to convert GMT string to local Date object
+const convertGMTtoLocal = (gmtString: string): Date => {
+  // Parse the GMT string to a Date object (which will be in UTC)
+  const date = parseISO(gmtString.replace(' ', 'T') + 'Z');
+  return date;
+};
 
 const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
   const theme = useTheme();
 
-  const { detailedData, hiLoData } = useMemo(() => {
-    // Get the start and end time from detailed predictions
-    const startTime = new Date(waterLevelData.tideDetailedPrediction.predictions[0].t).getTime();
-    const endTime = new Date(waterLevelData.tideDetailedPrediction.predictions[hoursToShow - 1].t).getTime();
+  const { detailedData, hiLoData, yAxisRange } = useMemo(() => {
+    // Get current time
+    const now = new Date();
+    const currentHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
 
-    // Process detailed predictions
-    const detailedPredictions = waterLevelData.tideDetailedPrediction.predictions.slice(0, hoursToShow);
-    const detailedLabels = detailedPredictions.map((item) => {
-      const [datePart, timePart] = item.t.split(' ');
-      const date = new Date(`${datePart}T${timePart}Z`);
-      return date.toLocaleString([], {
-        hour: 'numeric',
-        minute: '2-digit',
-        hour12: true,
-      });
+    // Find the prediction that corresponds to the current hour
+    const allPredictions = waterLevelData.tideDetailedPrediction.predictions;
+    let startIndex = 0;
+
+    // Find the closest prediction to current time
+    for (let i = 0; i < allPredictions.length; i++) {
+      const predTime = convertGMTtoLocal(allPredictions[i].t);
+      if (predTime >= currentHour) {
+        startIndex = i;
+        break;
+      }
+    }
+
+    // Calculate start and end times
+    const startTime = subHours(convertGMTtoLocal(allPredictions[startIndex].t), 6);
+    const endTime = addHours(startTime, 24);
+
+    // Filter predictions to get only the next 24 hours of data
+    const detailedPredictions = allPredictions.filter((prediction) => {
+      const predTime = convertGMTtoLocal(prediction.t);
+      return predTime >= startTime && predTime <= endTime;
     });
+
+    const detailedTimes = detailedPredictions.map((item) => convertGMTtoLocal(item.t));
     const detailedHeights = detailedPredictions.map((item) => parseFloat(item.v));
 
     // Process hi/lo predictions within the time range
     const hiLoPredictions = waterLevelData.tideHiLoPrediction.predictions.filter((prediction) => {
-      const time = new Date(prediction.t).getTime();
-      return time >= startTime && time <= endTime;
+      const time = convertGMTtoLocal(prediction.t).getTime();
+      return time >= startTime.getTime() && time <= endTime.getTime();
     });
 
-    // Create sparse arrays for hi/lo data
-    const hiLoPoints = new Array(detailedLabels.length).fill(null);
-    const hiLoTypes = new Array(detailedLabels.length).fill(null);
+    // Create arrays for hi/lo data
+    const hiLoData = hiLoPredictions.map((hiLo) => ({
+      x: convertGMTtoLocal(hiLo.t),
+      y: parseFloat(hiLo.v),
+      type: hiLo.type,
+    }));
 
-    hiLoPredictions.forEach((hiLo) => {
-      const hiLoTime = new Date(hiLo.t).getTime();
-      // Find the closest detailed prediction time
-      const index = detailedPredictions.findIndex((detailed) => {
-        const detailedTime = new Date(detailed.t).getTime();
-        return Math.abs(detailedTime - hiLoTime) <= 15 * 60 * 1000; // Within 15 minutes
-      });
-
-      if (index !== -1) {
-        hiLoPoints[index] = parseFloat(hiLo.v);
-        hiLoTypes[index] = hiLo.type;
-      }
-    });
+    // Calculate y-axis range
+    const allHeights = [...detailedHeights, ...hiLoData.map((point) => point.y)];
+    const minHeight = Math.min(...allHeights);
+    const maxHeight = Math.max(...allHeights);
+    const range = maxHeight - minHeight;
+    const padding = range * 0.2; // Add 20% padding
 
     return {
       detailedData: {
-        labels: detailedLabels,
+        times: detailedTimes,
         heights: detailedHeights,
       },
-      hiLoData: {
-        points: hiLoPoints,
-        types: hiLoTypes,
+      hiLoData,
+      yAxisRange: {
+        min: Math.floor(minHeight - padding),
+        max: Math.ceil(maxHeight + padding),
       },
     };
   }, [waterLevelData]);
 
-  const data = {
-    labels: detailedData.labels,
-    datasets: [
-      {
-        label: 'Tide Height',
-        data: detailedData.heights,
-        borderColor: 'rgb(75, 192, 192)',
-        backgroundColor: 'rgba(75, 192, 192, 0.5)',
-        tension: 0.4,
-        datalabels: {
-          display: false,
-        },
+  const datasets: ChartDataset<'line', any>[] = [
+    {
+      label: 'High/Low Points',
+      data: hiLoData,
+      borderColor: 'rgb(255, 99, 132)',
+      backgroundColor: 'rgb(255, 99, 132)',
+      pointRadius: 6,
+      pointHoverRadius: 8,
+      showLine: false,
+      parsing: {
+        xAxisKey: 'x',
+        yAxisKey: 'y',
       },
-      {
-        label: 'High/Low Points',
-        data: hiLoData.points,
-        borderColor: 'rgb(255, 99, 132)',
-        backgroundColor: 'rgb(255, 99, 132)',
-        pointRadius: 6,
-        pointHoverRadius: 8,
-        showLine: false,
-        datalabels: {
-          display: (context) => hiLoData.types[context.dataIndex] !== null,
-          color: theme.colors.text.primary,
-          formatter: (value: number, context) => {
-            const type = hiLoData.types[context.dataIndex];
-            const typeLabel = type === 'H' || type === 'HH' ? 'High' : 'Low';
-            return `${typeLabel}\n${value.toFixed(1)}ft`;
-          },
-          anchor: (context) => {
-            const type = hiLoData.types[context.dataIndex];
-            return type === 'H' || type === 'HH' ? 'bottom' : 'top';
-          },
-          align: (context) => {
-            const type = hiLoData.types[context.dataIndex];
-            return type === 'H' || type === 'HH' ? 'bottom' : 'top';
-          },
-          offset: 8,
+      datalabels: {
+        display: true,
+        color: theme.colors.text.primary,
+        formatter: (value: any) => {
+          const typeLabel = value.type === 'H' || value.type === 'HH' ? 'High' : 'Low';
+          return `${typeLabel}\n${value.y.toFixed(1)}ft`;
         },
+        anchor: (context: Context) => {
+          const dataPoint = context.dataset.data[context.dataIndex] as unknown as HiLoDataPoint;
+          return dataPoint.type === 'H' || dataPoint.type === 'HH' ? 'end' : 'start';
+        },
+        align: (context: Context) => {
+          const dataPoint = context.dataset.data[context.dataIndex] as unknown as HiLoDataPoint;
+          return dataPoint.type === 'H' || dataPoint.type === 'HH' ? 'end' : 'start';
+        },
+        offset: 8,
       },
-    ] as ChartDataset<'line', (number | null)[]>[],
-  };
+    },
+    {
+      label: 'Tide Height',
+      data: detailedData.times.map((time, index) => ({
+        x: time,
+        y: detailedData.heights[index],
+      })),
+      borderColor: 'rgb(75, 192, 192)',
+      backgroundColor: 'rgba(75, 192, 192, 0.5)',
+      tension: 0.4,
+      pointRadius: 1,
+      datalabels: {
+        display: false,
+      },
+    },
+  ];
 
   const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
-    layout: {
-      padding: {
-        right: 20,
-        top: 30,
-        bottom: 30,
-      },
-    },
     plugins: {
       legend: {
         display: false,
       },
       title: {
         display: true,
-        text: `Tide Predictions at ${waterLevelData.waterLevel.metadata.name} (Next ${hoursToShow} Hours)`,
+        text: `Tide Predictions at ${waterLevelData.waterLevel.metadata.name} (Next 24 Hours)`,
         color: theme.colors.text.primary,
       },
       tooltip: {
@@ -145,9 +164,9 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
             const datasetIndex = context.datasetIndex;
             if (datasetIndex === 1) {
               // Hi/Lo dataset
-              const type = hiLoData.types[context.dataIndex];
-              const typeLabel = type === 'H' || type === 'HH' ? 'High' : 'Low';
-              return `${typeLabel} Tide: ${context.parsed.y.toFixed(1)}ft`;
+              const point = context.raw as HiLoDataPoint;
+              const typeLabel = point.type === 'H' || point.type === 'HH' ? 'High' : 'Low';
+              return `${typeLabel} Tide: ${point.y.toFixed(1)}ft`;
             }
             return `Height: ${context.parsed.y.toFixed(1)}ft`;
           },
@@ -156,6 +175,8 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
     },
     scales: {
       y: {
+        min: yAxisRange.min,
+        max: yAxisRange.max,
         beginAtZero: false,
         title: {
           display: true,
@@ -170,6 +191,14 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
         },
       },
       x: {
+        type: 'time',
+        time: {
+          unit: 'hour',
+          displayFormats: {
+            hour: 'h:mm a',
+          },
+          tooltipFormat: 'PPpp', // Detailed format for tooltip
+        },
         ticks: {
           color: theme.colors.text.primary,
         },
@@ -182,7 +211,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
 
   return (
     <GraphContainer>
-      <Line options={options} data={data} plugins={[ChartDataLabels]} />
+      <Line options={options} data={{ datasets }} plugins={[ChartDataLabels]} />
     </GraphContainer>
   );
 };
