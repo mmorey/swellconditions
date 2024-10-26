@@ -39,7 +39,7 @@ const formatDate = (date: Date): string => {
 };
 
 export const fetchWaterTemperatureData = async (stationId: string): Promise<TidesAndCurrentsGovWaterTemperatureAPIResponse> => {
-  const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${stationId}&product=water_temperature&datum=MLLW&time_zone=gmt&units=english&format=json&date=recent&interval=15`;
+  const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${stationId}&product=water_temperature&datum=MLLW&time_zone=gmt&units=english&format=json&date=recent`;
 
   const response = await fetchWithRetry(url, { headers });
 
