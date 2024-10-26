@@ -3,11 +3,12 @@ import styled, { useTheme } from 'styled-components';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, TimeScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartDataset } from 'chart.js';
 import ChartDataLabels, { Context } from 'chartjs-plugin-datalabels';
+import annotationPlugin from 'chartjs-plugin-annotation';
 import 'chartjs-adapter-date-fns';
 import { parseISO, addHours, subHours } from 'date-fns';
 import { WaterLevelData } from '../APIClients/TidesAndCurrentsGovTypes';
 
-ChartJS.register(TimeScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(TimeScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, annotationPlugin);
 
 const GraphContainer = styled.div`
   height: 300px;
@@ -35,7 +36,7 @@ const convertGMTtoLocal = (gmtString: string): Date => {
 const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
   const theme = useTheme();
 
-  const { detailedData, hiLoData, yAxisRange } = useMemo(() => {
+  const { detailedData, hiLoData, yAxisRange, now } = useMemo(() => {
     // Get current time
     const now = new Date();
     const currentHour = new Date(now.getFullYear(), now.getMonth(), now.getDate(), now.getHours());
@@ -54,7 +55,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
     }
 
     // Calculate start and end times
-    const startTime = subHours(convertGMTtoLocal(allPredictions[startIndex].t), 6);
+    const startTime = subHours(convertGMTtoLocal(allPredictions[startIndex].t), 3);
     const endTime = addHours(startTime, 24);
 
     // Filter predictions to get only the next 24 hours of data
@@ -96,6 +97,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
         min: Math.floor(minHeight - padding),
         max: Math.ceil(maxHeight + padding),
       },
+      now,
     };
   }, [waterLevelData]);
 
@@ -169,6 +171,26 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
               return `${typeLabel} Tide: ${point.y.toFixed(1)}ft`;
             }
             return `Height: ${context.parsed.y.toFixed(1)}ft`;
+          },
+        },
+      },
+      annotation: {
+        annotations: {
+          currentTime: {
+            type: 'line',
+            xMin: now.getTime(),
+            xMax: now.getTime(),
+            borderColor: theme.colors.text.primary,
+            borderWidth: 1,
+
+            label: {
+              display: true,
+              content: 'Now',
+              position: 'start',
+              backgroundColor: theme.colors.backgroundLight,
+              color: theme.colors.text.primary,
+              padding: 4,
+            },
           },
         },
       },

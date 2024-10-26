@@ -12,6 +12,7 @@
   "dependencies": {
     "chart.js": "^4.4.4",
     "chartjs-adapter-date-fns": "^3.0.0",
+    "chartjs-plugin-annotation": "^3.1.0",
     "chartjs-plugin-datalabels": "^2.2.0",
     "date-fns": "^4.1.0",
     "iso8601-duration": "^2.1.2",
