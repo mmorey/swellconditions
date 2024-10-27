@@ -159,12 +159,12 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
   // Find the latest historical wind speed
   const latestHistoricalData = data
     .filter((d) => d.isHistorical)
-    .reduce((latest, current) => {
+    .reduce<(typeof data)[0] | undefined>((latest, current) => {
       if (!latest || current.time > latest.time) {
         return current;
       }
       return latest;
-    }, null);
+    }, undefined);
 
   const windSpeedColor = 'rgb(75, 192, 192)';
   const gustColor = 'rgba(75, 192, 192, 0.25)';
