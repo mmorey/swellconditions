@@ -9,3 +9,8 @@ export async function fetchLatestStations(): Promise<CDIPStation[]> {
   const data: CDIPResponse = await response.json();
   return data.data;
 }
+
+export async function fetchSpecificStations(stationNumbers: string[]): Promise<CDIPStation[]> {
+  const allStations = await fetchLatestStations();
+  return allStations.filter((station) => stationNumbers.includes(station.station_number));
+}

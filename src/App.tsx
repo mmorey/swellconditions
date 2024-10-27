@@ -2,15 +2,18 @@ import { useState, useEffect } from 'react';
 import styled from 'styled-components';
 import { BrowserRouter, useSearchParams } from 'react-router-dom';
 import { WeatherData } from './APIClients/WeatherGovTypes';
+import { CDIPStation as CDIPStationType } from './APIClients/CDIPTypes';
 import WindGraph from './components/WindGraph';
 import { fetchWeatherData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
 import { fetchWaterTemperatureData, findClosestTideStation, fetchWaterLevel } from './APIClients/TidesAndCurrentsGovAPI';
 import { TidesAndCurrentsGovWaterTemperatureAPIResponse, WaterLevelData } from './APIClients/TidesAndCurrentsGovTypes';
-import { fetchLatestStations } from './APIClients/CDIPAPI';
+import { fetchLatestStations, fetchSpecificStations } from './APIClients/CDIPAPI';
 import CurrentConditions from './components/CurrentConditions';
+import CDIPStation from './components/CDIPStation';
 import SunInformation from './components/SunInformation';
 import WaterTemperatureGraph from './components/WaterTemperatureGraph';
 import TideGraph from './components/TideGraph';
+import { calculateDistance, getDirection } from './utils';
 
 // Debug flag
 const DEBUG_MODE = false;
@@ -84,11 +87,13 @@ const AppContent: React.FC = () => {
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [waterTempData, setWaterTempData] = useState<TidesAndCurrentsGovWaterTemperatureAPIResponse | null>(null);
   const [waterLevelData, setWaterLevelData] = useState<WaterLevelData | null>(null);
+  const [cdipStations, setCdipStations] = useState<CDIPStationType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [csvDataUrl, setCsvDataUrl] = useState<string | null>(null);
 
   const coordinates = `(${latitude}, ${longitude})`;
+  const cdipParam = searchParams.get('cdip');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -105,15 +110,16 @@ const AppContent: React.FC = () => {
 
         const waterTempPromise = fetchWaterTemperatureData(selectedTideStation);
         const waterLevelPromise = fetchWaterLevel(selectedTideStation);
-        const cdipStationsPromise = fetchLatestStations();
 
-        const [weatherResult, waterTempResult, waterLevelResult, cdipStations] = await Promise.all([weatherPromise, waterTempPromise, waterLevelPromise, cdipStationsPromise]);
+        // Handle CDIP stations based on URL parameter
+        const cdipStationsPromise = cdipParam ? fetchSpecificStations(cdipParam.split(',')) : fetchLatestStations();
 
-        console.log('CDIP Stations:', cdipStations);
+        const [weatherResult, waterTempResult, waterLevelResult, cdipStationsResult] = await Promise.all([weatherPromise, waterTempPromise, waterLevelPromise, cdipStationsPromise]);
 
         setWeatherData(weatherResult);
         setWaterTempData(waterTempResult);
         setWaterLevelData(waterLevelResult);
+        setCdipStations(cdipStationsResult);
       } catch (e) {
         setError(`Failed to fetch data: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
@@ -122,7 +128,7 @@ const AppContent: React.FC = () => {
     };
 
     fetchData();
-  }, [latitude, longitude, tideStation]);
+  }, [latitude, longitude, tideStation, cdipParam]);
 
   useEffect(() => {
     if (DEBUG_MODE && weatherData) {
@@ -133,6 +139,22 @@ const AppContent: React.FC = () => {
       }
     }
   }, [weatherData]);
+
+  // Get stations to display - either all stations with distance/direction or just the specified ones
+  const stationsToDisplay = cdipParam
+    ? cdipStations.map((station) => ({
+        station,
+        distance: calculateDistance(latitude, longitude, station.latitude, station.longitude),
+        direction: getDirection(latitude, longitude, station.latitude, station.longitude),
+      }))
+    : cdipStations
+        .map((station) => ({
+          station,
+          distance: calculateDistance(latitude, longitude, station.latitude, station.longitude),
+          direction: getDirection(latitude, longitude, station.latitude, station.longitude),
+        }))
+        .sort((a, b) => a.distance - b.distance)
+        .slice(0, 3);
 
   return (
     <AppContainer>
@@ -151,6 +173,9 @@ const AppContent: React.FC = () => {
       {!loading && !error && weatherData && waterTempData ? (
         <>
           <CurrentConditions weatherData={weatherData} queriedLat={latitude} queriedLon={longitude} />
+          {stationsToDisplay.map(({ station, distance, direction }) => (
+            <CDIPStation key={station.station_number} station={station} distance={distance} direction={direction} />
+          ))}
           <WindGraph weatherData={weatherData} />
           {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
           <WaterTemperatureGraph waterTemperatureData={waterTempData} />
@@ -163,6 +188,7 @@ const AppContent: React.FC = () => {
       ) : (
         <>
           <PlaceholderContainer>Current conditions unavailable</PlaceholderContainer>
+          <PlaceholderContainer>CDIP stations unavailable</PlaceholderContainer>
           <PlaceholderContainer>Wind graph unavailable</PlaceholderContainer>
           <PlaceholderContainer>Tide graph unavailable</PlaceholderContainer>
           <PlaceholderContainer>Water temperature graph unavailable</PlaceholderContainer>
