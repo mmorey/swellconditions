@@ -178,7 +178,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
             label: {
               display: true,
               content: currentWaterLevel ? `${parseFloat(currentWaterLevel).toFixed(1)} ft` : 'Now',
-              position: 'center', // currentTimeAnnotationPosition,
+              position: 'start', // currentTimeAnnotationPosition,
               backgroundColor: theme.colors.backgroundLight,
               color: theme.colors.text.primary,
               padding: 0,
