@@ -1,11 +1,14 @@
 import React from 'react';
 import { Chart } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartData, ScatterController, LineController } from 'chart.js';
+import { Chart as ChartJS, TimeScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartData, ScatterController, LineController } from 'chart.js';
 import { getWindDirection, parseISO8601Duration, convertWindSpeed } from '../utils';
 import styled, { useTheme } from 'styled-components';
 import { WeatherData } from '../APIClients/WeatherGovTypes';
+import 'chartjs-adapter-date-fns';
+import annotationPlugin from 'chartjs-plugin-annotation';
+import { addHours, subHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ScatterController, LineController, Title, Tooltip, Legend);
+ChartJS.register(TimeScale, LinearScale, PointElement, LineElement, ScatterController, LineController, Title, Tooltip, Legend, annotationPlugin);
 
 interface WindGraphProps {
   weatherData: WeatherData;
@@ -20,8 +23,31 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
       speed: number;
       direction: number;
       gust: number;
+      isHistorical?: boolean;
     }[] = [];
 
+    const now = new Date();
+    const threeHoursAgo = subHours(now, 3);
+
+    // Process historical observations
+    if (weatherData.historical) {
+      weatherData.historical.features.forEach((observation) => {
+        if (observation.properties.windSpeed && observation.properties.windDirection) {
+          const time = new Date(observation.properties.timestamp);
+          if (time >= threeHoursAgo && time <= now) {
+            hourlyData.push({
+              time,
+              speed: convertWindSpeed(observation.properties.windSpeed.value, observation.properties.windSpeed.unitCode),
+              direction: observation.properties.windDirection.value,
+              gust: observation.properties.windGust?.value ? convertWindSpeed(observation.properties.windGust.value, observation.properties.windGust.unitCode) : 0,
+              isHistorical: true,
+            });
+          }
+        }
+      });
+    }
+
+    // Process forecast data
     const windSpeedData = weatherData.forecast.properties.windSpeed.values;
     const windDirectionData = weatherData.forecast.properties.windDirection?.values || [];
     const windGustData = weatherData.forecast.properties.windGust?.values || [];
@@ -34,13 +60,16 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
 
       for (let i = 0; i < durationHours; i++) {
         const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
-
-        hourlyData.push({
-          time,
-          speed: convertWindSpeed(windSpeed.value, weatherData.forecast.properties.windSpeed.uom),
-          direction: 0,
-          gust: 0,
-        });
+        // Only include forecast data points from now onwards
+        if (time >= now) {
+          hourlyData.push({
+            time,
+            speed: convertWindSpeed(windSpeed.value, weatherData.forecast.properties.windSpeed.uom),
+            direction: 0,
+            gust: 0,
+            isHistorical: false,
+          });
+        }
       }
     });
 
@@ -52,16 +81,20 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
 
       for (let i = 0; i < durationHours; i++) {
         const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
-        const existingEntry = hourlyData.find((entry) => entry.time.getTime() === time.getTime());
-        if (existingEntry) {
-          existingEntry.direction = windDirection.value;
-        } else {
-          hourlyData.push({
-            time,
-            speed: 0,
-            direction: windDirection.value,
-            gust: 0,
-          });
+        // Only process forecast data points from now onwards
+        if (time >= now) {
+          const existingEntry = hourlyData.find((entry) => entry.time.getTime() === time.getTime());
+          if (existingEntry) {
+            existingEntry.direction = windDirection.value;
+          } else {
+            hourlyData.push({
+              time,
+              speed: 0,
+              direction: windDirection.value,
+              gust: 0,
+              isHistorical: false,
+            });
+          }
         }
       }
     });
@@ -74,16 +107,20 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
 
       for (let i = 0; i < durationHours; i++) {
         const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
-        const existingEntry = hourlyData.find((entry) => entry.time.getTime() === time.getTime());
-        if (existingEntry) {
-          existingEntry.gust = convertWindSpeed(windGust.value, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1');
-        } else {
-          hourlyData.push({
-            time,
-            speed: 0,
-            direction: 0,
-            gust: convertWindSpeed(windGust.value, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1'),
-          });
+        // Only process forecast data points from now onwards
+        if (time >= now) {
+          const existingEntry = hourlyData.find((entry) => entry.time.getTime() === time.getTime());
+          if (existingEntry) {
+            existingEntry.gust = convertWindSpeed(windGust.value, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1');
+          } else {
+            hourlyData.push({
+              time,
+              speed: 0,
+              direction: 0,
+              gust: convertWindSpeed(windGust.value, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1'),
+              isHistorical: false,
+            });
+          }
         }
       }
     });
@@ -91,23 +128,15 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
     // Sort the hourlyData array by time
     hourlyData.sort((a, b) => a.time.getTime() - b.time.getTime());
 
-    // Limit the hourlyData array to the next 12 hours and no earlier than the current time
-    const currentTime = new Date();
-    const limitedData = hourlyData.filter((data) => data.time >= currentTime && data.time <= new Date(currentTime.getTime() + 12 * 60 * 60 * 1000));
+    // Get current time rounded to the nearest hour
+    const currentHour = setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0);
 
-    return limitedData.map((data) => ({
-      time: data.time
-        .toLocaleTimeString([], {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-          hourCycle: 'h12',
-        })
-        .toLowerCase(),
-      speed: data.speed,
-      direction: data.direction,
-      gust: data.gust,
-    }));
+    // Calculate start and end times (3 hours back and 21 hours forward)
+    const startTime = subHours(currentHour, 3);
+    const endTime = addHours(currentHour, 21);
+
+    // Filter data to show 3 hours of history and 21 hours of forecast
+    return hourlyData.filter((data) => data.time >= startTime && data.time <= endTime);
   } catch (error) {
     console.error('Error processing wind data:', error);
     return [];
@@ -124,17 +153,28 @@ const ChartContainer = styled.div`
 const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
   const theme = useTheme();
   const data = processWeatherGovWindData(weatherData);
+  const now = new Date();
+  const currentHour = setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0);
+
+  // Find the latest historical wind speed
+  const latestHistoricalData = data
+    .filter((d) => d.isHistorical)
+    .reduce((latest, current) => {
+      if (!latest || current.time > latest.time) {
+        return current;
+      }
+      return latest;
+    }, null);
 
   const windSpeedColor = 'rgb(75, 192, 192)';
   const gustColor = 'rgba(75, 192, 192, 0.25)';
 
   const chartData: ChartData<'scatter' | 'line'> = {
-    labels: data.map((d) => d.time),
     datasets: [
       {
         type: 'scatter' as const,
         label: 'Wind Speed',
-        data: data.map((d, index) => ({ x: index, y: d.speed })),
+        data: data.map((d) => ({ x: d.time.getTime(), y: d.speed })),
         backgroundColor: windSpeedColor,
         pointStyle: data.map((d) => {
           const canvas = document.createElement('canvas');
@@ -157,7 +197,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
       {
         type: 'line' as const,
         label: 'Wind Gust',
-        data: data.map((d, index) => ({ x: index, y: d.gust })),
+        data: data.map((d) => ({ x: d.time.getTime(), y: d.gust })),
         borderColor: gustColor,
         backgroundColor: gustColor,
         pointRadius: 1,
@@ -185,7 +225,12 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
             const dataIndex = context.dataIndex;
             const dataPoint = data[dataIndex];
             return [
-              `Time: ${dataPoint.time}`,
+              `Time: ${dataPoint.time.toLocaleTimeString([], {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+                hourCycle: 'h12',
+              })}`,
               `Wind Speed: ${dataPoint.speed.toFixed(1)} mph`,
               `Wind Gust: ${dataPoint.gust.toFixed(1)} mph`,
               `Direction: ${getWindDirection(dataPoint.direction)} ${dataPoint.direction}°`,
@@ -193,17 +238,41 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
           },
         },
       },
+      annotation: {
+        annotations: {
+          currentTime: {
+            type: 'line',
+            xMin: latestHistoricalData?.time.getTime() || now.getTime(),
+            xMax: latestHistoricalData?.time.getTime() || now.getTime(),
+            borderColor: theme.colors.text.primary,
+            borderWidth: 1,
+            label: {
+              display: true,
+              content: latestHistoricalData ? `${latestHistoricalData.speed.toFixed(1)} mph` : 'N/A',
+              position: 'start',
+              backgroundColor: theme.colors.backgroundLight,
+              color: theme.colors.text.primary,
+              padding: 4,
+            },
+          },
+        },
+      },
     },
     scales: {
       x: {
-        type: 'category' as const,
-        title: {
-          display: false,
-          text: 'Date and Time',
-          color: theme.colors.text.primary,
+        type: 'time',
+        time: {
+          unit: 'hour',
+          displayFormats: {
+            hour: 'h:mm a',
+          },
+          tooltipFormat: 'PPpp',
         },
+        min: subHours(currentHour, 3).getTime(),
+        max: addHours(currentHour, 21).getTime(),
         ticks: {
           color: theme.colors.text.primary,
+          padding: 8,
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
@@ -217,9 +286,13 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
         },
         ticks: {
           color: theme.colors.text.primary,
+          padding: 8,
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
+        },
+        afterFit: (scaleInstance) => {
+          scaleInstance.width = 60; // Fixed width for y-axis
         },
       },
     },
