@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { BrowserRouter, useSearchParams } from 'react-router-dom';
 import { WeatherData } from './APIClients/WeatherGovTypes';
 import WindGraph from './components/WindGraph';
-import { fetchWeatherData, processWeatherGovWindData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
+import { fetchWeatherData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
 import { fetchWaterTemperatureData, findClosestTideStation, fetchWaterLevel } from './APIClients/TidesAndCurrentsGovAPI';
 import { TidesAndCurrentsGovWaterTemperatureAPIResponse, WaterLevelData } from './APIClients/TidesAndCurrentsGovTypes';
 import CurrentConditions from './components/CurrentConditions';
@@ -12,7 +12,7 @@ import WaterTemperatureGraph from './components/WaterTemperatureGraph';
 import TideGraph from './components/TideGraph';
 
 // Debug flag
-const DEBUG_MODE = true;
+const DEBUG_MODE = false;
 
 const AppContainer = styled.div`
   padding: 20px;
@@ -128,8 +128,6 @@ const AppContent: React.FC = () => {
     }
   }, [weatherData]);
 
-  const windData = processWeatherGovWindData(weatherData);
-
   return (
     <AppContainer>
       <TitleContainer>
@@ -147,7 +145,7 @@ const AppContent: React.FC = () => {
       {!loading && !error && weatherData && waterTempData ? (
         <>
           <CurrentConditions weatherData={weatherData} queriedLat={latitude} queriedLon={longitude} />
-          <WindGraph data={windData} />
+          <WindGraph weatherData={weatherData} />
           <WaterTemperatureGraph waterTemperatureData={waterTempData} />
           {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
           {DEBUG_MODE && csvDataUrl && (

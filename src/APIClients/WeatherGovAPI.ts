@@ -1,5 +1,5 @@
-import { WeatherGovAPIResponse, ForecastGridDataAPIResponse, CurrentConditionsAPIResponse, WeatherData } from './WeatherGovTypes';
-import { parseISO8601Duration, convertWindSpeed } from '../utils';
+import { WeatherGovAPIResponse, ForecastGridDataAPIResponse, CurrentConditionsAPIResponse, WeatherData, HistoricalConditionsAPIResponse } from './WeatherGovTypes';
+import { parseISO8601Duration } from '../utils';
 
 const headers = {
   'User-Agent': 'swellconditions.com',
@@ -35,11 +35,12 @@ export const fetchWeatherData = async (latitude: number, longitude: number): Pro
 
   const data: WeatherGovAPIResponse = await response.json();
   const forecast = await fetchForecastData(data.properties.forecastGridData);
-  const current = await fetchCurrentConditions(data.properties.observationStations);
+  const { current, historical } = await fetchObservations(data.properties.observationStations);
 
   return {
     forecast,
     current,
+    historical,
     city: data.properties.relativeLocation.properties.city,
     state: data.properties.relativeLocation.properties.state,
   };
@@ -53,7 +54,7 @@ const fetchForecastData = async (forecastGridDataUrl: string): Promise<ForecastG
   return await response.json();
 };
 
-const fetchCurrentConditions = async (observationStationsUrl: string): Promise<CurrentConditionsAPIResponse> => {
+const fetchObservations = async (observationStationsUrl: string): Promise<{ current: CurrentConditionsAPIResponse; historical: HistoricalConditionsAPIResponse }> => {
   const stationsResponse = await fetchWithRetry(observationStationsUrl, { headers });
   if (!stationsResponse.ok) {
     throw new Error(`HTTP error! status: ${stationsResponse.status}`);
@@ -64,6 +65,7 @@ const fetchCurrentConditions = async (observationStationsUrl: string): Promise<C
     const station = stationsData.features[i];
     const stationId = station.id;
     const stationName = station.properties.name;
+    const stationIdentifier = station.properties.stationIdentifier;
 
     const currentConditionsUrl = `${stationId}/observations`;
     const currentConditionsResponse = await fetchWithRetry(currentConditionsUrl, { headers });
@@ -73,14 +75,15 @@ const fetchCurrentConditions = async (observationStationsUrl: string): Promise<C
     }
     const currentConditionsData = await currentConditionsResponse.json();
 
-    // Iterate through observations to find the first one with valid temperature and wind speed
+    // Find the first observation with valid temperature and wind speed
     for (const observation of currentConditionsData.features) {
       const temperature = observation.properties.temperature.value;
       const windSpeed = observation.properties.windSpeed.value;
 
       if (temperature !== null && windSpeed !== null) {
-        return {
+        const current = {
           name: stationName,
+          stationIdentifier: stationIdentifier,
           geometry: observation.geometry,
           properties: {
             timestamp: observation.properties.timestamp,
@@ -90,114 +93,16 @@ const fetchCurrentConditions = async (observationStationsUrl: string): Promise<C
             windGust: observation.properties.windGust,
           },
         };
+
+        return {
+          current,
+          historical: currentConditionsData, // Return the full observations data as historical
+        };
       }
     }
   }
 
   throw new Error('No valid observation found with temperature and wind speed after trying up to 10 stations');
-};
-
-export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
-  if (!weatherData) return [];
-
-  try {
-    const hourlyData: {
-      time: Date;
-      speed: number;
-      direction: number;
-      gust: number;
-    }[] = [];
-
-    const windSpeedData = weatherData.forecast.properties.windSpeed.values;
-    const windDirectionData = weatherData.forecast.properties.windDirection?.values || [];
-    const windGustData = weatherData.forecast.properties.windGust?.values || [];
-
-    // Process wind speed data
-    windSpeedData.forEach((windSpeed) => {
-      const [startTimeStr, durationStr] = windSpeed.validTime.split('/');
-      const startTime = new Date(startTimeStr);
-      const durationHours = parseISO8601Duration(durationStr);
-
-      for (let i = 0; i < durationHours; i++) {
-        const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
-
-        hourlyData.push({
-          time,
-          speed: convertWindSpeed(windSpeed.value, weatherData.forecast.properties.windSpeed.uom),
-          direction: 0,
-          gust: 0,
-        });
-      }
-    });
-
-    // Process wind direction data
-    windDirectionData.forEach((windDirection) => {
-      const [startTimeStr, durationStr] = windDirection.validTime.split('/');
-      const startTime = new Date(startTimeStr);
-      const durationHours = parseISO8601Duration(durationStr);
-
-      for (let i = 0; i < durationHours; i++) {
-        const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
-        const existingEntry = hourlyData.find((entry) => entry.time.getTime() === time.getTime());
-        if (existingEntry) {
-          existingEntry.direction = windDirection.value;
-        } else {
-          hourlyData.push({
-            time,
-            speed: 0,
-            direction: windDirection.value,
-            gust: 0,
-          });
-        }
-      }
-    });
-
-    // Process wind gust data
-    windGustData.forEach((windGust) => {
-      const [startTimeStr, durationStr] = windGust.validTime.split('/');
-      const startTime = new Date(startTimeStr);
-      const durationHours = parseISO8601Duration(durationStr);
-
-      for (let i = 0; i < durationHours; i++) {
-        const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
-        const existingEntry = hourlyData.find((entry) => entry.time.getTime() === time.getTime());
-        if (existingEntry) {
-          existingEntry.gust = convertWindSpeed(windGust.value, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1');
-        } else {
-          hourlyData.push({
-            time,
-            speed: 0,
-            direction: 0,
-            gust: convertWindSpeed(windGust.value, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1'),
-          });
-        }
-      }
-    });
-
-    // Sort the hourlyData array by time
-    hourlyData.sort((a, b) => a.time.getTime() - b.time.getTime());
-
-    // Limit the hourlyData array to the next 12 hours and no earlier than the current time
-    const currentTime = new Date();
-    const limitedData = hourlyData.filter((data) => data.time >= currentTime && data.time <= new Date(currentTime.getTime() + 12 * 60 * 60 * 1000));
-
-    return limitedData.map((data) => ({
-      time: data.time
-        .toLocaleTimeString([], {
-          hour: 'numeric',
-          minute: '2-digit',
-          hour12: true,
-          hourCycle: 'h12',
-        })
-        .toLowerCase(),
-      speed: data.speed,
-      direction: data.direction,
-      gust: data.gust,
-    }));
-  } catch (error) {
-    console.error('Error processing wind data:', error);
-    return [];
-  }
 };
 
 // Debug helper function

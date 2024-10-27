@@ -1,21 +1,118 @@
 import React from 'react';
 import { Chart } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartData, ScatterController, LineController } from 'chart.js';
-import { getWindDirection } from '../utils';
+import { getWindDirection, parseISO8601Duration, convertWindSpeed } from '../utils';
 import styled, { useTheme } from 'styled-components';
+import { WeatherData } from '../APIClients/WeatherGovTypes';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, ScatterController, LineController, Title, Tooltip, Legend);
 
-interface WindData {
-  time: string;
-  speed: number;
-  gust: number;
-  direction: number;
+interface WindGraphProps {
+  weatherData: WeatherData;
 }
 
-interface WindGraphProps {
-  data: WindData[];
-}
+export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
+  if (!weatherData) return [];
+
+  try {
+    const hourlyData: {
+      time: Date;
+      speed: number;
+      direction: number;
+      gust: number;
+    }[] = [];
+
+    const windSpeedData = weatherData.forecast.properties.windSpeed.values;
+    const windDirectionData = weatherData.forecast.properties.windDirection?.values || [];
+    const windGustData = weatherData.forecast.properties.windGust?.values || [];
+
+    // Process wind speed data
+    windSpeedData.forEach((windSpeed) => {
+      const [startTimeStr, durationStr] = windSpeed.validTime.split('/');
+      const startTime = new Date(startTimeStr);
+      const durationHours = parseISO8601Duration(durationStr);
+
+      for (let i = 0; i < durationHours; i++) {
+        const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
+
+        hourlyData.push({
+          time,
+          speed: convertWindSpeed(windSpeed.value, weatherData.forecast.properties.windSpeed.uom),
+          direction: 0,
+          gust: 0,
+        });
+      }
+    });
+
+    // Process wind direction data
+    windDirectionData.forEach((windDirection) => {
+      const [startTimeStr, durationStr] = windDirection.validTime.split('/');
+      const startTime = new Date(startTimeStr);
+      const durationHours = parseISO8601Duration(durationStr);
+
+      for (let i = 0; i < durationHours; i++) {
+        const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
+        const existingEntry = hourlyData.find((entry) => entry.time.getTime() === time.getTime());
+        if (existingEntry) {
+          existingEntry.direction = windDirection.value;
+        } else {
+          hourlyData.push({
+            time,
+            speed: 0,
+            direction: windDirection.value,
+            gust: 0,
+          });
+        }
+      }
+    });
+
+    // Process wind gust data
+    windGustData.forEach((windGust) => {
+      const [startTimeStr, durationStr] = windGust.validTime.split('/');
+      const startTime = new Date(startTimeStr);
+      const durationHours = parseISO8601Duration(durationStr);
+
+      for (let i = 0; i < durationHours; i++) {
+        const time = new Date(startTime.getTime() + i * 60 * 60 * 1000);
+        const existingEntry = hourlyData.find((entry) => entry.time.getTime() === time.getTime());
+        if (existingEntry) {
+          existingEntry.gust = convertWindSpeed(windGust.value, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1');
+        } else {
+          hourlyData.push({
+            time,
+            speed: 0,
+            direction: 0,
+            gust: convertWindSpeed(windGust.value, weatherData.forecast.properties.windGust?.uom || 'wmoUnit:km_h-1'),
+          });
+        }
+      }
+    });
+
+    // Sort the hourlyData array by time
+    hourlyData.sort((a, b) => a.time.getTime() - b.time.getTime());
+
+    // Limit the hourlyData array to the next 12 hours and no earlier than the current time
+    const currentTime = new Date();
+    const limitedData = hourlyData.filter((data) => data.time >= currentTime && data.time <= new Date(currentTime.getTime() + 12 * 60 * 60 * 1000));
+
+    return limitedData.map((data) => ({
+      time: data.time
+        .toLocaleTimeString([], {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true,
+          hourCycle: 'h12',
+        })
+        .toLowerCase(),
+      speed: data.speed,
+      direction: data.direction,
+      gust: data.gust,
+    }));
+  } catch (error) {
+    console.error('Error processing wind data:', error);
+    return [];
+  }
+};
 
 const ChartContainer = styled.div`
   height: 300px;
@@ -24,8 +121,9 @@ const ChartContainer = styled.div`
   background-color: ${(props) => props.theme.colors.backgroundLight};
 `;
 
-const WindGraph: React.FC<WindGraphProps> = ({ data }) => {
+const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
   const theme = useTheme();
+  const data = processWeatherGovWindData(weatherData);
 
   const windSpeedColor = 'rgb(75, 192, 192)';
   const gustColor = 'rgba(75, 192, 192, 0.25)';

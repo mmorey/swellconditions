@@ -34,6 +34,7 @@ export interface ForecastGridDataAPIResponse {
 
 export interface CurrentConditionsAPIResponse {
   name: string;
+  stationIdentifier: string;
   geometry: {
     type: string;
     coordinates: number[];
@@ -59,8 +60,33 @@ export interface CurrentConditionsAPIResponse {
   };
 }
 
+export interface HistoricalConditionsAPIResponse {
+  features: Array<{
+    properties: {
+      timestamp: string;
+      temperature: {
+        unitCode: string;
+        value: number;
+      };
+      windSpeed: {
+        unitCode: string;
+        value: number;
+      };
+      windDirection: {
+        unitCode: string;
+        value: number;
+      };
+      windGust: {
+        unitCode: string;
+        value: number;
+      };
+    };
+  }>;
+}
+
 export interface WeatherData {
   current: CurrentConditionsAPIResponse;
+  historical: HistoricalConditionsAPIResponse;
   forecast: ForecastGridDataAPIResponse;
   city: string;
   state: string;
