@@ -169,6 +169,32 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
   const windSpeedColor = 'rgb(75, 192, 192)';
   const gustColor = 'rgba(75, 192, 192, 0.25)';
 
+  // Find min and max wind speeds from the actual data
+  const minSpeed = Math.min(...data.map((d) => d.speed));
+  const maxSpeed = Math.max(...data.map((d) => d.speed));
+
+  // Calculate y-axis range
+  const range = maxSpeed - minSpeed;
+  const padding = range * 0.4; // Add 20% padding
+  const yAxisRange = {
+    min: Math.floor(minSpeed - padding),
+    max: Math.ceil(maxSpeed + padding),
+  };
+
+  // Calculate point sizes based on actual wind speed range
+  const getPointSize = (speed: number) => {
+    const minSize = 6;
+    const maxSize = 16;
+
+    // If all speeds are the same, return the average size
+    if (maxSpeed === minSpeed) {
+      return (minSize + maxSize) / 2;
+    }
+
+    // Linear scaling between min and max sizes based on actual data range
+    return minSize + ((speed - minSpeed) / (maxSpeed - minSpeed)) * (maxSize - minSize);
+  };
+
   const chartData: ChartData<'scatter' | 'line'> = {
     datasets: [
       {
@@ -180,11 +206,12 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
           if (ctx) {
-            canvas.width = 30;
-            canvas.height = 30;
-            ctx.translate(15, 15);
+            const size = getPointSize(d.speed);
+            canvas.width = size * 2;
+            canvas.height = size * 2;
+            ctx.translate(size, size);
             ctx.rotate(((d.direction + 180) * Math.PI) / 180);
-            ctx.font = '30px Arial';
+            ctx.font = `${size * 2}px Arial`;
             ctx.fillStyle = windSpeedColor;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
@@ -192,7 +219,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
           }
           return canvas;
         }),
-        pointRadius: 8,
+        pointRadius: data.map((d) => getPointSize(d.speed)),
       },
       {
         type: 'line' as const,
@@ -249,7 +276,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
             label: {
               display: true,
               content: latestHistoricalData ? `${latestHistoricalData.speed.toFixed(1)} mph` : 'N/A',
-              position: 'start',
+              position: latestHistoricalData && latestHistoricalData.speed > maxSpeed * 0.5 ? 'start' : 'end',
               backgroundColor: theme.colors.backgroundLight,
               color: theme.colors.text.primary,
               padding: 4,
@@ -279,6 +306,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
         },
       },
       y: {
+        max: yAxisRange.max,
         title: {
           display: true,
           text: 'Wind Speed (mph)',

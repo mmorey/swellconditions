@@ -155,10 +155,9 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
       },
       tooltip: {
         callbacks: {
-          label: (context) => {
+          label: function (context) {
             const datasetIndex = context.datasetIndex;
-            if (datasetIndex === 1) {
-              // Hi/Lo dataset
+            if (datasetIndex === 0) {
               const point = context.raw as HiLoDataPoint;
               const typeLabel = point.type === 'H' || point.type === 'HH' ? 'High' : 'Low';
               return `${typeLabel} Tide: ${point.y.toFixed(1)} ft`;
@@ -170,18 +169,19 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
       annotation: {
         annotations: {
           currentTime: {
-            type: 'line',
+            type: 'line' as const,
             xMin: now.getTime(),
             xMax: now.getTime(),
             borderColor: theme.colors.text.primary,
             borderWidth: 1,
+            drawTime: 'afterDatasetsDraw',
             label: {
               display: true,
               content: currentWaterLevel ? `${parseFloat(currentWaterLevel).toFixed(1)} ft` : 'Now',
-              position: 'start',
+              position: 'center', // currentTimeAnnotationPosition,
               backgroundColor: theme.colors.backgroundLight,
               color: theme.colors.text.primary,
-              padding: 4,
+              padding: 0,
             },
           },
         },
