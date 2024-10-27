@@ -6,6 +6,7 @@ import WindGraph from './components/WindGraph';
 import { fetchWeatherData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
 import { fetchWaterTemperatureData, findClosestTideStation, fetchWaterLevel } from './APIClients/TidesAndCurrentsGovAPI';
 import { TidesAndCurrentsGovWaterTemperatureAPIResponse, WaterLevelData } from './APIClients/TidesAndCurrentsGovTypes';
+import { fetchLatestStations } from './APIClients/CDIPAPI';
 import CurrentConditions from './components/CurrentConditions';
 import SunInformation from './components/SunInformation';
 import WaterTemperatureGraph from './components/WaterTemperatureGraph';
@@ -104,7 +105,12 @@ const AppContent: React.FC = () => {
 
         const waterTempPromise = fetchWaterTemperatureData(selectedTideStation);
         const waterLevelPromise = fetchWaterLevel(selectedTideStation);
-        const [weatherResult, waterTempResult, waterLevelResult] = await Promise.all([weatherPromise, waterTempPromise, waterLevelPromise]);
+        const cdipStationsPromise = fetchLatestStations();
+
+        const [weatherResult, waterTempResult, waterLevelResult, cdipStations] = await Promise.all([weatherPromise, waterTempPromise, waterLevelPromise, cdipStationsPromise]);
+
+        console.log('CDIP Stations:', cdipStations);
+
         setWeatherData(weatherResult);
         setWaterTempData(waterTempResult);
         setWaterLevelData(waterLevelResult);
