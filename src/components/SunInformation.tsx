@@ -45,15 +45,35 @@ const SunLabel = styled.div`
   color: ${(props) => props.theme.colors.text.secondary};
 `;
 
+const CoordinateText = styled.div`
+  font-size: 12px;
+  color: ${(props) => props.theme.colors.text.secondary};
+  text-align: center;
+  margin-top: 10px;
+`;
+
 interface SunInformationProps {
   latitude: number;
   longitude: number;
 }
 
 const SunInformation: React.FC<SunInformationProps> = ({ latitude, longitude }) => {
-  const today = new Date();
-  const times = SunCalc.getTimes(today, latitude, longitude);
+  const now = new Date();
+  const times = SunCalc.getTimes(now, latitude, longitude);
+  const isShowingTomorrow = now > times.dusk;
 
+  // If current time is past dusk, show tomorrow's times
+  if (isShowingTomorrow) {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const tomorrowTimes = SunCalc.getTimes(tomorrow, latitude, longitude);
+    return renderSunTimes(tomorrowTimes, latitude, longitude, isShowingTomorrow);
+  }
+
+  return renderSunTimes(times, latitude, longitude, isShowingTomorrow);
+};
+
+const renderSunTimes = (times: SunCalc.GetTimesResult, latitude: number, longitude: number, isShowingTomorrow: boolean) => {
   const formatTime = (date: Date) => {
     return date.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true }).toLowerCase();
   };
@@ -82,6 +102,9 @@ const SunInformation: React.FC<SunInformationProps> = ({ latitude, longitude }) 
           </SunTimeGroup>
         </SunColumn>
       </SunInformationRow>
+      <CoordinateText>
+        Calculated times at {latitude.toFixed(4)}°, {longitude.toFixed(4)}° for {isShowingTomorrow ? 'tomorrow' : 'today'}
+      </CoordinateText>
     </SunInformationContainer>
   );
 };
