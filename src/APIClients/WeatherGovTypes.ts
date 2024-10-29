@@ -1,5 +1,6 @@
 export interface WeatherGovAPIResponse {
   properties: {
+    cwa: string;
     forecastGridData: string;
     observationStations: string;
     relativeLocation: {
@@ -90,4 +91,5 @@ export interface WeatherData {
   forecast: ForecastGridDataAPIResponse;
   city: string;
   state: string;
+  cwa: string;
 }

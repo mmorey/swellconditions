@@ -91,10 +91,6 @@ export const formatTimeAgo = (timestamp: string): string => {
 
   const now = new Date();
   const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
-  console.log('timestamp:', timestamp);
-  console.log('now:', now);
-  console.log('date:', date);
-  console.log('diffInMinutes:', diffInMinutes);
 
   if (diffInMinutes < 1) {
     return 'just now';

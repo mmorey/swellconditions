@@ -14,6 +14,7 @@ import SunInformation from './components/SunInformation';
 import WaterTemperatureGraph from './components/WaterTemperatureGraph';
 import TideGraph from './components/TideGraph';
 import { calculateDistance, getDirection } from './utils';
+import SatelliteViewer from './components/SatelliteViewer';
 
 // Debug flag
 const DEBUG_MODE = false;
@@ -184,6 +185,7 @@ const AppContent: React.FC = () => {
               Download Debug CSV
             </DownloadLink>
           )}
+          <SatelliteViewer weatherOfficeCode={weatherData.cwa} />
         </>
       ) : (
         <>

@@ -43,6 +43,7 @@ export const fetchWeatherData = async (latitude: number, longitude: number): Pro
     historical,
     city: data.properties.relativeLocation.properties.city,
     state: data.properties.relativeLocation.properties.state,
+    cwa: data.properties.cwa,
   };
 };
 
