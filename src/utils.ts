@@ -71,35 +71,44 @@ export const getDirection = (lat1: number, lon1: number, lat2: number, lon2: num
 };
 
 // Function to format timestamp to "X minutes ago"
-export const formatTimeAgo = (timestamp: string): string => {
-  // Parse CDIP timestamp format: mm.dd.YYYY-HH:MM:ss (UTC)
-  const [datePart, timePart] = timestamp.split('-');
-  const [month, day, year] = datePart.split('.');
-  const [hours, minutes, seconds] = timePart.split(':');
+export const formatTimeAgo = (timestamp: string | Date): string => {
+  let date: Date;
 
-  // Create date in UTC
-  const date = new Date(
-    Date.UTC(
-      parseInt(year),
-      parseInt(month) - 1, // JavaScript months are 0-based
-      parseInt(day),
-      parseInt(hours),
-      parseInt(minutes),
-      parseInt(seconds)
-    )
-  );
+  if (typeof timestamp === 'string') {
+    // Parse CDIP timestamp format: mm.dd.YYYY-HH:MM:ss (UTC)
+    const [datePart, timePart] = timestamp.split('-');
+    const [month, day, year] = datePart.split('.');
+    const [hours, minutes, seconds] = timePart.split(':');
+
+    // Create date in UTC
+    date = new Date(
+      Date.UTC(
+        parseInt(year),
+        parseInt(month) - 1, // JavaScript months are 0-based
+        parseInt(day),
+        parseInt(hours),
+        parseInt(minutes),
+        parseInt(seconds)
+      )
+    );
+  } else {
+    date = timestamp;
+  }
 
   const now = new Date();
   const diffInMinutes = Math.floor((now.getTime() - date.getTime()) / (1000 * 60));
+
+  console.log('timestamp:', timestamp);
+  console.log('date:', date);
+  console.log('now:', now);
+  console.log('diffInMinutes:', diffInMinutes);
 
   if (diffInMinutes < 1) {
     return 'just now';
   } else if (diffInMinutes === 1) {
     return '1 minute ago';
-  } else if (diffInMinutes < 60) {
-    return `${diffInMinutes} minutes ago`;
   } else if (diffInMinutes < 120) {
-    return '1 hour ago';
+    return `${diffInMinutes} minutes ago`;
   } else {
     const hours = Math.floor(diffInMinutes / 60);
     return `${hours} hours ago`;

@@ -3,13 +3,16 @@ import styled from 'styled-components';
 import { BrowserRouter, useSearchParams } from 'react-router-dom';
 import { WeatherData } from './APIClients/WeatherGovTypes';
 import { CDIPStation as CDIPStationType } from './APIClients/CDIPTypes';
+import { NDBCStationType } from './APIClients/NDBCTypes';
 import WindGraph from './components/WindGraph';
 import { fetchWeatherData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
 import { fetchWaterTemperatureData, findClosestTideStation, fetchWaterLevel } from './APIClients/TidesAndCurrentsGovAPI';
 import { TidesAndCurrentsGovWaterTemperatureAPIResponse, WaterLevelData } from './APIClients/TidesAndCurrentsGovTypes';
 import { fetchLatestStations, fetchSpecificStations } from './APIClients/CDIPAPI';
+import { getClosestStations, fetchSpecificNDBCStations } from './APIClients/NDBCAPI';
 import CurrentConditions from './components/CurrentConditions';
 import CDIPStation from './components/CDIPStation';
+import NDBCStation from './components/NDBCStation';
 import SunInformation from './components/SunInformation';
 import WaterTemperatureGraph from './components/WaterTemperatureGraph';
 import TideGraph from './components/TideGraph';
@@ -89,12 +92,14 @@ const AppContent: React.FC = () => {
   const [waterTempData, setWaterTempData] = useState<TidesAndCurrentsGovWaterTemperatureAPIResponse | null>(null);
   const [waterLevelData, setWaterLevelData] = useState<WaterLevelData | null>(null);
   const [cdipStations, setCdipStations] = useState<CDIPStationType[]>([]);
+  const [ndbcStations, setNdbcStations] = useState<NDBCStationType[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [csvDataUrl, setCsvDataUrl] = useState<string | null>(null);
 
   const coordinates = `(${latitude}, ${longitude})`;
   const cdipParam = searchParams.get('cdip');
+  const ndbcParam = searchParams.get('ndbc');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -114,13 +119,23 @@ const AppContent: React.FC = () => {
 
         // Handle CDIP stations based on URL parameter
         const cdipStationsPromise = cdipParam ? fetchSpecificStations(cdipParam.split(',')) : fetchLatestStations();
+        const ndbcStationsPromise = ndbcParam ? fetchSpecificNDBCStations(ndbcParam.split(','), latitude, longitude) : getClosestStations(latitude, longitude);
 
-        const [weatherResult, waterTempResult, waterLevelResult, cdipStationsResult] = await Promise.all([weatherPromise, waterTempPromise, waterLevelPromise, cdipStationsPromise]);
+        const [weatherResult, waterTempResult, waterLevelResult, cdipStationsResult, ndbcStationsResult] = await Promise.all([
+          weatherPromise,
+          waterTempPromise,
+          waterLevelPromise,
+          cdipStationsPromise,
+          ndbcStationsPromise,
+        ]);
+
+        console.log('NDBC API Response:', ndbcStationsResult);
 
         setWeatherData(weatherResult);
         setWaterTempData(waterTempResult);
         setWaterLevelData(waterLevelResult);
         setCdipStations(cdipStationsResult);
+        setNdbcStations(ndbcStationsResult);
       } catch (e) {
         setError(`Failed to fetch data: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
@@ -129,7 +144,7 @@ const AppContent: React.FC = () => {
     };
 
     fetchData();
-  }, [latitude, longitude, tideStation, cdipParam]);
+  }, [latitude, longitude, tideStation, cdipParam, ndbcParam]);
 
   useEffect(() => {
     if (DEBUG_MODE && weatherData) {
@@ -157,6 +172,12 @@ const AppContent: React.FC = () => {
         .sort((a, b) => a.distance - b.distance)
         .slice(0, 3);
 
+  // Get the closest 3 NDBC stations and add distance/direction to each station
+  console.log('Current ndbcStations state:', ndbcStations);
+  const ndbcStationsToDisplay = ndbcStations;
+  console.log('ndbcStationsToDisplay after assignment:', ndbcStationsToDisplay);
+  console.log('Number of NDBC stations to render:', ndbcStationsToDisplay.length);
+
   return (
     <AppContainer>
       <TitleContainer>
@@ -176,6 +197,9 @@ const AppContent: React.FC = () => {
           <CurrentConditions weatherData={weatherData} queriedLat={latitude} queriedLon={longitude} />
           {stationsToDisplay.map(({ station, distance, direction }) => (
             <CDIPStation key={station.station_number} station={station} distance={distance} direction={direction} />
+          ))}
+          {ndbcStationsToDisplay.map((station) => (
+            <NDBCStation key={station.id} station={station} />
           ))}
           <WindGraph weatherData={weatherData} />
           {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
