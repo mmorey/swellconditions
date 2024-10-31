@@ -129,8 +129,6 @@ const AppContent: React.FC = () => {
           ndbcStationsPromise,
         ]);
 
-        console.log('NDBC API Response:', ndbcStationsResult);
-
         setWeatherData(weatherResult);
         setWaterTempData(waterTempResult);
         setWaterLevelData(waterLevelResult);
@@ -172,11 +170,7 @@ const AppContent: React.FC = () => {
         .sort((a, b) => a.distance - b.distance)
         .slice(0, 3);
 
-  // Get the closest 3 NDBC stations and add distance/direction to each station
-  console.log('Current ndbcStations state:', ndbcStations);
   const ndbcStationsToDisplay = ndbcStations;
-  console.log('ndbcStationsToDisplay after assignment:', ndbcStationsToDisplay);
-  console.log('Number of NDBC stations to render:', ndbcStationsToDisplay.length);
 
   return (
     <AppContainer>

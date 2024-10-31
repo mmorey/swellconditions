@@ -15,6 +15,11 @@ function parseLatestObservations(text: string): Map<string, NDBCLatestObservatio
 
     const parseValue = (value: string) => (value === 'MM' ? null : parseFloat(value));
 
+    // if (parts[0] === '46232') {
+    //   console.log('Line: ', line);
+    //   console.log('Parts: ', parts);
+    // }
+
     const observation: NDBCLatestObservation = {
       timestamp: new Date(
         Date.UTC(
