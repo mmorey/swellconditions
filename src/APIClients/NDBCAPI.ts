@@ -135,44 +135,63 @@ export async function fetchSpecificNDBCStations(stationNumbers: string[], latitu
 }
 
 export async function fetchRawSpectralWaveData(stationID: string): Promise<SpectralWaveData | null> {
-  const response = await fetch(`https://corsproxy.io/?https://www.ndbc.noaa.gov/data/realtime2/${stationID}.data_spec`);
-  const text = await response.text();
-  const lines = text.split('\n');
+  const [specResponse, dirResponse] = await Promise.all([
+    fetch(`https://corsproxy.io/?https://www.ndbc.noaa.gov/data/realtime2/${stationID}.data_spec`),
+    fetch(`https://corsproxy.io/?https://www.ndbc.noaa.gov/data/realtime2/${stationID}.swdir`),
+  ]);
 
-  // Find the first non-header line (doesn't start with #)
-  const dataLine = lines.find((line) => line.trim() && !line.startsWith('#'));
-  if (!dataLine) return null;
+  const [specText, dirText] = await Promise.all([specResponse.text(), dirResponse.text()]);
 
-  const parts = dataLine.trim().split(/\s+/);
-  if (parts.length < 6) return null;
+  const specLines = specText.split('\n');
+  const dirLines = dirText.split('\n');
 
-  // Parse timestamp (first 5 columns)
+  // Find the first non-header lines
+  const specDataLine = specLines.find((line) => line.trim() && !line.startsWith('#'));
+  const dirDataLine = dirLines.find((line) => line.trim() && !line.startsWith('#'));
+
+  if (!specDataLine || !dirDataLine) return null;
+
+  const specParts = specDataLine.trim().split(/\s+/);
+  const dirParts = dirDataLine.trim().split(/\s+/);
+
+  if (specParts.length < 6 || dirParts.length < 6) return null;
+
+  // Parse timestamp from spec data (first 5 columns)
   const timestamp = new Date(
     Date.UTC(
-      parseInt(parts[0]), // year
-      parseInt(parts[1]) - 1, // month (0-based)
-      parseInt(parts[2]), // day
-      parseInt(parts[3]), // hour
-      parseInt(parts[4]) // minute
+      parseInt(specParts[0]), // year
+      parseInt(specParts[1]) - 1, // month (0-based)
+      parseInt(specParts[2]), // day
+      parseInt(specParts[3]), // hour
+      parseInt(specParts[4]) // minute
     )
   );
 
   // Parse separation frequency (column 6)
-  const separationFrequency = parseFloat(parts[5]);
+  const separationFrequency = parseFloat(specParts[5]);
 
-  // Parse spectral data (remaining columns)
-  const spectralDataSection = parts.slice(6).join(' ');
+  // Parse spectral data and direction data (remaining columns)
+  const spectralDataSection = specParts.slice(6).join(' ');
+  const directionDataSection = dirParts.slice(5).join(' ');
   const spectralData: SpectralDataPoint[] = [];
-  const regex = /([\d.]+)\s*\(([\d.]+)\)/g;
-  let match;
 
-  while ((match = regex.exec(spectralDataSection)) !== null) {
-    spectralData.push({
-      energy: parseFloat(match[1]),
-      frequency: parseFloat(match[2]),
-    });
+  const specRegex = /([\d.]+)\s*\(([\d.]+)\)/g;
+  const dirRegex = /([\d.]+)\s*\(([\d.]+)\)/g;
+
+  let specMatch;
+  let dirMatch;
+  while ((specMatch = specRegex.exec(spectralDataSection)) !== null && (dirMatch = dirRegex.exec(directionDataSection)) !== null) {
+    // Verify the frequencies match
+    if (specMatch[2] === dirMatch[2]) {
+      spectralData.push({
+        energy: parseFloat(specMatch[1]),
+        frequency: parseFloat(specMatch[2]),
+        angle: parseFloat(dirMatch[1]),
+      });
+    }
   }
 
+  console.log('Spectral Data:', spectralData);
   return {
     timestamp,
     separationFrequency,

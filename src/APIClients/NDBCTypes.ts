@@ -44,6 +44,7 @@ export interface NDBCStationsResponse {
 export interface SpectralDataPoint {
   frequency: number;
   energy: number;
+  angle: number;
 }
 
 export interface SpectralWaveData {
