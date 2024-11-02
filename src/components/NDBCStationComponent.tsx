@@ -1,6 +1,6 @@
 import React from 'react';
 import styled from 'styled-components';
-import { NDBCStationType } from '../APIClients/NDBCTypes';
+import { NDBCStation } from '../APIClients/NDBCTypes';
 import { getWindArrow, getWindDirection, formatTimeAgo } from '../utils';
 
 const StationContainer = styled.div`
@@ -64,10 +64,10 @@ const DirectionArrow = styled.span<{ $rotation: number }>`
 `;
 
 interface NDBCStationProps {
-  station: NDBCStationType;
+  station: NDBCStation;
 }
 
-const NDBCStation: React.FC<NDBCStationProps> = ({ station }) => {
+const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
   if (!station.latestObservation) return null;
 
   // Convert wave height from meters to feet
@@ -112,4 +112,4 @@ const NDBCStation: React.FC<NDBCStationProps> = ({ station }) => {
   );
 };
 
-export default NDBCStation;
+export default NDBCStationComponent;

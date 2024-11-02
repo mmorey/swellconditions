@@ -16,7 +16,7 @@ export interface NDBCLatestObservation {
   tide: number | null; // TIDE in ft
 }
 
-export interface NDBCStationType {
+export interface NDBCStation {
   id: string;
   lat: number;
   lon: number;
@@ -32,10 +32,22 @@ export interface NDBCStationType {
   latestObservation?: NDBCLatestObservation;
   distance?: number; // Distance in miles from reference point
   direction?: string; // Direction from reference point (N, S, E, W, NE, etc.)
+  spectralWaveData?: SpectralWaveData;
 }
 
 export interface NDBCStationsResponse {
   created: string;
   count: number;
-  stations: NDBCStationType[];
+  stations: NDBCStation[];
+}
+
+export interface SpectralDataPoint {
+  frequency: number;
+  energy: number;
+}
+
+export interface SpectralWaveData {
+  timestamp: Date;
+  separationFrequency: number;
+  spectralData: SpectralDataPoint[];
 }

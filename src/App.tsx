@@ -3,7 +3,7 @@ import styled from 'styled-components';
 import { BrowserRouter, useSearchParams } from 'react-router-dom';
 import { WeatherData } from './APIClients/WeatherGovTypes';
 import { CDIPStation as CDIPStationType } from './APIClients/CDIPTypes';
-import { NDBCStationType } from './APIClients/NDBCTypes';
+import { NDBCStation } from './APIClients/NDBCTypes';
 import WindGraph from './components/WindGraph';
 import { fetchWeatherData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
 import { fetchWaterTemperatureData, findClosestTideStation, fetchWaterLevel } from './APIClients/TidesAndCurrentsGovAPI';
@@ -12,7 +12,7 @@ import { fetchLatestStations, fetchSpecificStations } from './APIClients/CDIPAPI
 import { getClosestStations, fetchSpecificNDBCStations } from './APIClients/NDBCAPI';
 import CurrentConditions from './components/CurrentConditions';
 import CDIPStation from './components/CDIPStation';
-import NDBCStation from './components/NDBCStation';
+import NDBCStationComponent from './components/NDBCStationComponent';
 import SunInformation from './components/SunInformation';
 import WaterTemperatureGraph from './components/WaterTemperatureGraph';
 import TideGraph from './components/TideGraph';
@@ -92,7 +92,7 @@ const AppContent: React.FC = () => {
   const [waterTempData, setWaterTempData] = useState<TidesAndCurrentsGovWaterTemperatureAPIResponse | null>(null);
   const [waterLevelData, setWaterLevelData] = useState<WaterLevelData | null>(null);
   const [cdipStations, setCdipStations] = useState<CDIPStationType[]>([]);
-  const [ndbcStations, setNdbcStations] = useState<NDBCStationType[]>([]);
+  const [ndbcStations, setNdbcStations] = useState<NDBCStation[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [csvDataUrl, setCsvDataUrl] = useState<string | null>(null);
@@ -193,7 +193,7 @@ const AppContent: React.FC = () => {
             <CDIPStation key={station.station_number} station={station} distance={distance} direction={direction} />
           ))}
           {ndbcStationsToDisplay.map((station) => (
-            <NDBCStation key={station.id} station={station} />
+            <NDBCStationComponent key={station.id} station={station} />
           ))}
           <WindGraph weatherData={weatherData} />
           {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
