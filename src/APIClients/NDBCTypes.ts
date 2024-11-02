@@ -47,8 +47,18 @@ export interface SpectralDataPoint {
   angle: number;
 }
 
+export interface SwellComponent {
+  waveHeight: number; // Significant wave height in meters
+  period: number; // Wave period in seconds
+  direction: number; // Wave direction in degrees
+  compassDirection: string; // Compass direction (N, S, E, W, etc.)
+  maxEnergy: number; // Maximum energy value for this component
+  frequencyIndex: number; // Index in the frequency array where max energy occurs
+}
+
 export interface SpectralWaveData {
   timestamp: Date;
   separationFrequency: number;
   spectralData: SpectralDataPoint[];
+  swellComponents: SwellComponent[];
 }

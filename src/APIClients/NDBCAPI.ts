@@ -1,4 +1,4 @@
-import { NDBCStation, NDBCStationsResponse, NDBCLatestObservation, SpectralWaveData, SpectralDataPoint } from './NDBCTypes';
+import { NDBCStation, NDBCStationsResponse, NDBCLatestObservation, SpectralWaveData, SpectralDataPoint, SwellComponent } from './NDBCTypes';
 import { calculateDistance, getDirection } from '../utils';
 
 function parseLatestObservations(text: string): Map<string, NDBCLatestObservation> {
@@ -51,6 +51,101 @@ function parseLatestObservations(text: string): Map<string, NDBCLatestObservatio
   }
 
   return observations;
+}
+
+function zeroSpectralMoment(energy: number, bandwidth: number): number {
+  return energy * bandwidth;
+}
+
+function secondSpectralMoment(energy: number, bandwidth: number, frequency: number): number {
+  return energy * bandwidth * (frequency * frequency);
+}
+
+function degreeToDirection(degree: number): string {
+  const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+  const index = Math.round(((degree + 360) % 360) / 22.5) % 16;
+  return directions[index];
+}
+
+function peakDetect(values: number[], delta: number): [number[], number[], number[], number[]] {
+  const minIndexes: number[] = [];
+  const minValues: number[] = [];
+  const maxIndexes: number[] = [];
+  const maxValues: number[] = [];
+
+  let mn = Infinity;
+  let mx = -Infinity;
+  let mnPos = NaN;
+  let mxPos = NaN;
+  let lookForMax = true;
+
+  for (let i = 0; i < values.length; i++) {
+    const current = values[i];
+
+    if (current > mx) {
+      mx = current;
+      mxPos = i;
+    }
+    if (current < mn) {
+      mn = current;
+      mnPos = i;
+    }
+
+    if (lookForMax) {
+      if (current < mx - delta) {
+        maxIndexes.push(mxPos);
+        maxValues.push(mx);
+        mn = current;
+        mnPos = i;
+        lookForMax = false;
+      }
+    } else {
+      if (current > mn + delta) {
+        minIndexes.push(mnPos);
+        minValues.push(mn);
+        mx = current;
+        mxPos = i;
+        lookForMax = true;
+      }
+    }
+  }
+
+  return [minIndexes, minValues, maxIndexes, maxValues];
+}
+
+function calculateSwellComponents(spectralData: SpectralDataPoint[]): SwellComponent[] {
+  if (spectralData.length === 0) return [];
+
+  const energyValues = spectralData.map((point) => point.energy);
+  const [minIndexes, , maxIndexes, maxValues] = peakDetect(energyValues, 0.05);
+
+  const components: SwellComponent[] = [];
+  let prevIndex = 0;
+
+  for (let i = 0; i < maxValues.length; i++) {
+    const minIndex = i >= minIndexes.length ? spectralData.length : minIndexes[i];
+    let zeroMoment = 0;
+
+    for (let j = prevIndex; j < minIndex; j++) {
+      const bandwidth = j > 0 ? Math.abs(spectralData[j].frequency - spectralData[j - 1].frequency) : Math.abs(spectralData[j + 1].frequency - spectralData[j].frequency);
+
+      zeroMoment += zeroSpectralMoment(spectralData[j].energy, bandwidth);
+    }
+
+    const component: SwellComponent = {
+      waveHeight: 4.0 * Math.sqrt(zeroMoment),
+      period: 1.0 / spectralData[maxIndexes[i]].frequency,
+      direction: spectralData[maxIndexes[i]].angle,
+      compassDirection: degreeToDirection(spectralData[maxIndexes[i]].angle),
+      maxEnergy: maxValues[i],
+      frequencyIndex: maxIndexes[i],
+    };
+
+    components.push(component);
+    prevIndex = minIndex;
+  }
+
+  return components.sort((a, b) => b.maxEnergy - a.maxEnergy);
 }
 
 export async function getActiveStations(): Promise<NDBCStationsResponse> {
@@ -167,7 +262,6 @@ export async function fetchRawSpectralWaveData(stationID: string): Promise<Spect
     )
   );
 
-  // Parse separation frequency (column 6)
   const separationFrequency = parseFloat(specParts[5]);
 
   // Parse spectral data and direction data (remaining columns)
@@ -191,10 +285,15 @@ export async function fetchRawSpectralWaveData(stationID: string): Promise<Spect
     }
   }
 
+  // Calculate swell components from spectral data
+  const swellComponents = calculateSwellComponents(spectralData);
+
   console.log('Spectral Data:', spectralData);
+  console.log('Swell Components:', swellComponents);
   return {
     timestamp,
     separationFrequency,
     spectralData,
+    swellComponents,
   };
 }
