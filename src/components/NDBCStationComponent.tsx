@@ -40,6 +40,7 @@ const LargeValue = styled.div`
 
 const Label = styled.div`
   font-size: 14px;
+  text-align: center;
   color: ${(props) => props.theme.colors.text.secondary};
 `;
 
@@ -89,12 +90,6 @@ const SwellTitle = styled.div`
   color: ${(props) => props.theme.colors.text.primary};
 `;
 
-const SwellLabel = styled.div`
-  font-size: 12px;
-  text-align: center;
-  color: ${(props) => props.theme.colors.text.secondary};
-`;
-
 const SwellValue = styled.div`
   text-align: center;
   font-size: 12px;
@@ -119,16 +114,16 @@ const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
       <StationRow>
         <DataColumnsWrapper>
           <DataColumn>
-            <Label>Height</Label>
+            <Label>Significant Wave Height</Label>
             <LargeValue>{waveHeightFeet?.toFixed(1) ?? 'N/A'} ft</LargeValue>
           </DataColumn>
           <DataColumn>
-            <Label>Period</Label>
+            <Label>Dominant Wave Period</Label>
             <LargeValue>{station.latestObservation.dominantWavePeriod?.toFixed(1) ?? 'N/A'}s</LargeValue>
           </DataColumn>
           {station.latestObservation.meanWaveDirection !== null && (
             <DataColumn>
-              <Label>Direction</Label>
+              <Label>Mean Wave Direction</Label>
               <LargeValue>
                 {station.latestObservation.meanWaveDirection}° {getWindDirection(station.latestObservation.meanWaveDirection)}
                 <DirectionArrow $rotation={station.latestObservation.meanWaveDirection}>{getWindArrow(station.latestObservation.meanWaveDirection).arrow}</DirectionArrow>
@@ -151,7 +146,7 @@ const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
             const heightFeet = component.waveHeight * 3.28084;
             return (
               <SwellComponentRow key={index}>
-                <SwellValue>{component.maxEnergy.toFixed(2)}</SwellValue>
+                <SwellValue>{(component.maxEnergyJoules / 1000).toFixed(2)}</SwellValue>
                 <SwellValue>{heightFeet.toFixed(1)} ft</SwellValue>
                 <SwellValue>{component.period.toFixed(1)} s</SwellValue>
                 <SwellValue>

@@ -57,9 +57,9 @@ function zeroSpectralMoment(energy: number, bandwidth: number): number {
   return energy * bandwidth;
 }
 
-function secondSpectralMoment(energy: number, bandwidth: number, frequency: number): number {
-  return energy * bandwidth * (frequency * frequency);
-}
+// function secondSpectralMoment(energy: number, bandwidth: number, frequency: number): number {
+//   return energy * bandwidth * (frequency * frequency);
+// }
 
 function degreeToDirection(degree: number): string {
   const directions = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
@@ -132,12 +132,16 @@ function calculateSwellComponents(spectralData: SpectralDataPoint[]): SwellCompo
       zeroMoment += zeroSpectralMoment(spectralData[j].energy, bandwidth);
     }
 
+    const WATER_DENSITY = 1025; // kg/m³ (seawater)
+    const GRAVITY = 9.81; // m/s²
+
     const component: SwellComponent = {
       waveHeight: 4.0 * Math.sqrt(zeroMoment),
       period: 1.0 / spectralData[maxIndexes[i]].frequency,
       direction: spectralData[maxIndexes[i]].angle,
       compassDirection: degreeToDirection(spectralData[maxIndexes[i]].angle),
       maxEnergy: maxValues[i],
+      maxEnergyJoules: zeroMoment * WATER_DENSITY * GRAVITY,
       frequencyIndex: maxIndexes[i],
     };
 

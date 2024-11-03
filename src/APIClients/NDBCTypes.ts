@@ -52,7 +52,8 @@ export interface SwellComponent {
   period: number; // Wave period in seconds
   direction: number; // Wave direction in degrees
   compassDirection: string; // Compass direction (N, S, E, W, etc.)
-  maxEnergy: number; // Maximum energy value for this component
+  maxEnergy: number; // Maximum energy value for this component m*m/Hz
+  maxEnergyJoules: number; // Maximum energy value for this component in Joules
   frequencyIndex: number; // Index in the frequency array where max energy occurs
 }
 
