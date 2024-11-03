@@ -10,6 +10,13 @@
             "name": "Launch Chrome against localhost",
             "url": "http://localhost:5173/?lat=37.7749&lon=-122.4194",
             "webRoot": "${workspaceFolder}"
+        },
+                {
+            "type": "node",
+            "request": "launch",
+            "name": "Run 9band.js",
+            "program": "${workspaceFolder}/9band.js",
+            "args": ["46232"]
         }
     ]
 }
