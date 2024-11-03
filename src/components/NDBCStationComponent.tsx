@@ -65,6 +65,42 @@ const DirectionArrow = styled.span<{ $rotation: number }>`
   transform: rotate(${(props) => props.$rotation}deg);
 `;
 
+const SwellComponentsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+
+  background-color: ${(props) => props.theme.colors.backgroundLight};
+`;
+
+const SwellComponentRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  align-items: center;
+  padding: 10px;
+  &:not(:last-child) {
+    border-bottom: 1px solid ${(props) => props.theme.colors.text.secondary}20;
+  }
+`;
+
+const SwellTitle = styled.div`
+  font-size: 12px;
+  font-weight: bold;
+  text-align: center;
+  color: ${(props) => props.theme.colors.text.primary};
+`;
+
+const SwellLabel = styled.div`
+  font-size: 12px;
+  text-align: center;
+  color: ${(props) => props.theme.colors.text.secondary};
+`;
+
+const SwellValue = styled.div`
+  text-align: center;
+  font-size: 12px;
+  font-weight: bold;
+`;
+
 interface NDBCStationProps {
   station: NDBCStation;
 }
@@ -107,6 +143,27 @@ const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
           )}
         </DataColumnsWrapper>
       </StationRow>
+
+      {station.spectralWaveData?.swellComponents && station.spectralWaveData.swellComponents.length > 0 && (
+        <SwellComponentsContainer>
+          <SwellTitle>Swell Components</SwellTitle>
+          {station.spectralWaveData.swellComponents.map((component, index) => {
+            const heightFeet = component.waveHeight * 3.28084;
+            return (
+              <SwellComponentRow key={index}>
+                <SwellValue>{component.maxEnergy.toFixed(2)}</SwellValue>
+                <SwellValue>{heightFeet.toFixed(1)} ft</SwellValue>
+                <SwellValue>{component.period.toFixed(1)} s</SwellValue>
+                <SwellValue>
+                  {component.direction}° {component.compassDirection}
+                  <DirectionArrow $rotation={component.direction}>{getWindArrow(component.direction).arrow}</DirectionArrow>
+                </SwellValue>
+              </SwellComponentRow>
+            );
+          })}
+        </SwellComponentsContainer>
+      )}
+
       <SpectralWaveGraph station={station} />
       <SpectralDirectionalRose station={station} />
       <StationInfo>
