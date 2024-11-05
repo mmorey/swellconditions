@@ -146,7 +146,7 @@ const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
             const heightFeet = component.waveHeight * 3.28084;
             return (
               <SwellComponentRow key={index}>
-                <SwellValue>{(component.maxEnergyJoules / 1000).toFixed(2)}</SwellValue>
+                <SwellValue>{(component.maxEnergyJoules / 1000).toFixed(2)} kJ</SwellValue>
                 <SwellValue>{heightFeet.toFixed(1)} ft</SwellValue>
                 <SwellValue>{component.period.toFixed(1)} s</SwellValue>
                 <SwellValue>

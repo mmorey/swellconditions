@@ -135,13 +135,18 @@ function calculateSwellComponents(spectralData: SpectralDataPoint[]): SwellCompo
     const WATER_DENSITY = 1025; // kg/m³ (seawater)
     const GRAVITY = 9.81; // m/s²
 
+    const waveHeight = 4.0 * Math.sqrt(zeroMoment);
+    const wavePeriod = 1.0 / spectralData[maxIndexes[i]].frequency;
+    const maxEnergyJoules = (1 / 16) * WATER_DENSITY * GRAVITY * waveHeight * waveHeight;
+    // const maxEnergyJoules = wavePeriod * waveHeight * waveHeight;
+
     const component: SwellComponent = {
-      waveHeight: 4.0 * Math.sqrt(zeroMoment),
-      period: 1.0 / spectralData[maxIndexes[i]].frequency,
+      waveHeight: waveHeight,
+      period: wavePeriod,
       direction: spectralData[maxIndexes[i]].angle,
       compassDirection: degreeToDirection(spectralData[maxIndexes[i]].angle),
       maxEnergy: maxValues[i],
-      maxEnergyJoules: zeroMoment * WATER_DENSITY * GRAVITY,
+      maxEnergyJoules: maxEnergyJoules,
       frequencyIndex: maxIndexes[i],
     };
 
