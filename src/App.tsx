@@ -8,7 +8,7 @@ import WindGraph from './components/WindGraph';
 import { fetchWeatherData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
 import { fetchWaterTemperatureData, findClosestTideStation, fetchWaterLevel } from './APIClients/TidesAndCurrentsGovAPI';
 import { TidesAndCurrentsGovWaterTemperatureAPIResponse, WaterLevelData } from './APIClients/TidesAndCurrentsGovTypes';
-import { fetchLatestStations, fetchSpecificStations } from './APIClients/CDIPAPI';
+import { fetchSpecificStations } from './APIClients/CDIPAPI';
 import { getClosestStations, fetchSpecificNDBCStations } from './APIClients/NDBCAPI';
 import CurrentConditions from './components/CurrentConditions';
 import CDIPStation from './components/CDIPStation';
