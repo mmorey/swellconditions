@@ -45,7 +45,7 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
       },
       title: {
         display: true,
-        text: `Wave Spectra (m²/Hz) vs Period (s)`,
+        text: `Wave Spectra Density`,
         color: theme.colors.text.primary,
       },
       tooltip: {
@@ -63,8 +63,8 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
         type: 'linear',
         beginAtZero: true,
         title: {
-          display: false,
-          text: 'Energy (m²/Hz)',
+          display: true,
+          text: 'Spectral Density (m²/Hz)',
           color: theme.colors.text.primary,
         },
         ticks: {
@@ -79,7 +79,7 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
         type: 'category',
         position: 'bottom',
         title: {
-          display: false,
+          display: true,
           text: 'Period (s)',
           color: theme.colors.text.primary,
         },

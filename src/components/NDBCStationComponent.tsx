@@ -81,7 +81,8 @@ const SwellComponentsContainer = styled.div`
 
 const SwellComponentRow = styled.div`
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  // grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(3, 1fr);
   align-items: center;
   padding: 10px;
   &:not(:last-child) {
@@ -126,7 +127,7 @@ const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
           </DataColumn>
           <DataColumn>
             <Label>Dominant Wave Period</Label>
-            <LargeValue>{station.latestObservation.dominantWavePeriod?.toFixed(1) ?? 'N/A'}s</LargeValue>
+            <LargeValue>{station.latestObservation.dominantWavePeriod?.toFixed(1) ?? 'N/A'} s</LargeValue>
           </DataColumn>
           {station.latestObservation.meanWaveDirection !== null && (
             <DataColumn>
@@ -148,12 +149,12 @@ const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
 
       {station.spectralWaveData?.swellComponents && station.spectralWaveData.swellComponents.length > 0 && (
         <SwellComponentsContainer>
-          <SwellTitle>Swell Components</SwellTitle>
+          <SwellTitle>Individual Swell Components</SwellTitle>
           {station.spectralWaveData.swellComponents.map((component, index) => {
             const heightFeet = component.waveHeight * 3.28084;
             return (
               <SwellComponentRow key={index}>
-                <SwellValue>{(component.maxEnergyJoules / 1000).toFixed(2)} kJ</SwellValue>
+                {/* <SwellValue>{(component.maxEnergyJoules / 1000).toFixed(2)} kJ</SwellValue> */}
                 <SwellValue>{heightFeet.toFixed(1)} ft</SwellValue>
                 <SwellValue>{component.period.toFixed(1)} s</SwellValue>
                 <SwellValue>
