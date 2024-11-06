@@ -117,8 +117,11 @@ const AppContent: React.FC = () => {
         const waterTempPromise = fetchWaterTemperatureData(selectedTideStation);
         const waterLevelPromise = fetchWaterLevel(selectedTideStation);
 
-        // Handle CDIP stations based on URL parameter
-        const cdipStationsPromise = cdipParam ? fetchSpecificStations(cdipParam.split(',')) : fetchLatestStations();
+        // Only fetch CDIP stations if cdipParam exists
+        const cdipStationsPromise = cdipParam
+          ? fetchSpecificStations(cdipParam.split(',')) // This will work for both single station and comma-separated lists
+          : Promise.resolve([]);
+
         const ndbcStationsPromise = ndbcParam ? fetchSpecificNDBCStations(ndbcParam.split(','), latitude, longitude) : getClosestStations(latitude, longitude);
 
         const [weatherResult, waterTempResult, waterLevelResult, cdipStationsResult, ndbcStationsResult] = await Promise.all([
@@ -154,21 +157,15 @@ const AppContent: React.FC = () => {
     }
   }, [weatherData]);
 
-  // Get stations to display - either all stations with distance/direction or just the specified ones
-  const stationsToDisplay = cdipParam
-    ? cdipStations.map((station) => ({
-        station,
-        distance: calculateDistance(latitude, longitude, station.latitude, station.longitude),
-        direction: getDirection(latitude, longitude, station.latitude, station.longitude),
-      }))
-    : cdipStations
-        .map((station) => ({
+  // Only process CDIP stations if cdipParam exists
+  const stationsToDisplay =
+    cdipParam && cdipStations.length > 0
+      ? cdipStations.map((station) => ({
           station,
           distance: calculateDistance(latitude, longitude, station.latitude, station.longitude),
           direction: getDirection(latitude, longitude, station.latitude, station.longitude),
         }))
-        .sort((a, b) => a.distance - b.distance)
-        .slice(0, 3);
+      : [];
 
   const ndbcStationsToDisplay = ndbcStations;
 
@@ -208,7 +205,7 @@ const AppContent: React.FC = () => {
       ) : (
         <>
           <PlaceholderContainer>Current conditions unavailable</PlaceholderContainer>
-          <PlaceholderContainer>CDIP stations unavailable</PlaceholderContainer>
+          {cdipParam && <PlaceholderContainer>CDIP stations unavailable</PlaceholderContainer>}
           <PlaceholderContainer>Wind graph unavailable</PlaceholderContainer>
           <PlaceholderContainer>Tide graph unavailable</PlaceholderContainer>
           <PlaceholderContainer>Water temperature graph unavailable</PlaceholderContainer>
