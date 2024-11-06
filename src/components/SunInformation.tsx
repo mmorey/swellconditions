@@ -10,6 +10,12 @@ const SunInformationContainer = styled.div`
   flex-direction: column;
 `;
 
+const Title = styled.h2`
+  text-align: center;
+  font-size: 12px;
+  color: ${(props) => props.theme.colors.text.primary};
+`;
+
 const SunInformationRow = styled.div`
   display: flex;
   justify-content: space-between;
@@ -80,6 +86,7 @@ const renderSunTimes = (times: SunCalc.GetTimesResult, latitude: number, longitu
 
   return (
     <SunInformationContainer>
+      <Title>Daylight Hours</Title>
       <SunInformationRow>
         <SunColumn>
           <SunTimeGroup>

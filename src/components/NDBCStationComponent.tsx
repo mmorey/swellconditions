@@ -13,6 +13,12 @@ const StationContainer = styled.div`
   flex-direction: column;
 `;
 
+const Title = styled.h2`
+  text-align: center;
+  font-size: 12px;
+  color: ${(props) => props.theme.colors.text.primary};
+`;
+
 const StationRow = styled.div`
   display: flex;
   justify-content: center;
@@ -111,6 +117,7 @@ const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
 
   return (
     <StationContainer>
+      <Title>Buoy {station.id}</Title>
       <StationRow>
         <DataColumnsWrapper>
           <DataColumn>

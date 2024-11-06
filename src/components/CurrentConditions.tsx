@@ -11,6 +11,12 @@ const CurrentConditionsContainer = styled.div`
   flex-direction: column;
 `;
 
+const Title = styled.h2`
+  text-align: center;
+  font-size: 12px;
+  color: ${(props) => props.theme.colors.text.primary};
+`;
+
 const CurrentConditionsRow = styled.div`
   display: flex;
   justify-content: space-between;
@@ -117,6 +123,7 @@ const CurrentConditions: React.FC<CurrentConditionsProps> = ({ weatherData, quer
 
   return (
     <CurrentConditionsContainer>
+      <Title>Current Conditions</Title>
       <CurrentConditionsRow>
         <ConditionColumn>
           <LargeValue>{convertTemperature(weatherData.current.properties.temperature.value, weatherData.current.properties.temperature.unitCode).toFixed(1)} °F</LargeValue>
