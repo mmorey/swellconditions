@@ -16,6 +16,7 @@ import NDBCStationComponent from './components/NDBCStationComponent';
 import SunInformation from './components/SunInformation';
 import WaterTemperatureGraph from './components/WaterTemperatureGraph';
 import TideGraph from './components/TideGraph';
+import CDIPClassicSwellModel from './components/CDIPClassicSwellModel';
 import { calculateDistance, getDirection } from './utils';
 import SatelliteViewer from './components/SatelliteViewer';
 
@@ -195,6 +196,7 @@ const AppContent: React.FC = () => {
           <WindGraph weatherData={weatherData} />
           {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
           <WaterTemperatureGraph waterTemperatureData={waterTempData} />
+          <CDIPClassicSwellModel latitude={latitude} longitude={longitude} />
           {DEBUG_MODE && csvDataUrl && (
             <DownloadLink href={csvDataUrl} download="weather_data.csv">
               Download Debug CSV
