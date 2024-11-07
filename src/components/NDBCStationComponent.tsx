@@ -34,7 +34,7 @@ const StationRow = styled.div`
 
 const DataColumnsWrapper = styled.div`
   display: flex;
-  gap: 20px;
+  gap: 10px;
   justify-content: center;
 `;
 

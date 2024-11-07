@@ -70,10 +70,11 @@ const MainTitle = styled.h1`
 `;
 
 const LocationInfo = styled.h2`
-  margin: 0;
+  margin: 8px 0 0 0;
   font-size: 18px;
   font-weight: normal;
   text-align: center;
+  color: ${(props) => props.theme.colors.text.secondary};
 `;
 
 const SettingsIcon = styled.img`
