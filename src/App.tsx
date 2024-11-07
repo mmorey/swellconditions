@@ -227,7 +227,7 @@ const AppContent: React.FC = () => {
           <WindGraph weatherData={weatherData} />
           {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
           <WaterTemperatureGraph waterTemperatureData={waterTempData} />
-          {weatherData.afd && <AFD afd={weatherData.afd} />}
+          {weatherData.afd && <AFD afd={weatherData.afd.text} wfo={weatherData.cwa} timestamp={weatherData.afd.timestamp} />}
           {stationsToDisplay.map(({ station, distance, direction }) => (
             <CDIPStation key={station.station_number} station={station} distance={distance} direction={direction} />
           ))}

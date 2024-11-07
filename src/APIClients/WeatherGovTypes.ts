@@ -85,6 +85,11 @@ export interface HistoricalConditionsAPIResponse {
   }>;
 }
 
+export interface AFDData {
+  text: string;
+  timestamp: string;
+}
+
 export interface WeatherData {
   current: CurrentConditionsAPIResponse;
   historical: HistoricalConditionsAPIResponse;
@@ -92,5 +97,5 @@ export interface WeatherData {
   city: string;
   state: string;
   cwa: string;
-  afd: string;
+  afd: AFDData;
 }

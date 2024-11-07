@@ -1,4 +1,4 @@
-import { WeatherGovAPIResponse, ForecastGridDataAPIResponse, CurrentConditionsAPIResponse, WeatherData, HistoricalConditionsAPIResponse } from './WeatherGovTypes';
+import { WeatherGovAPIResponse, ForecastGridDataAPIResponse, CurrentConditionsAPIResponse, WeatherData, HistoricalConditionsAPIResponse, AFDData } from './WeatherGovTypes';
 import { parseISO8601Duration } from '../utils';
 
 const headers = {
@@ -22,7 +22,7 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, de
   }
 };
 
-const fetchAFD = async (cwa: string): Promise<string> => {
+const fetchAFD = async (cwa: string): Promise<AFDData> => {
   const productsResponse = await fetchWithRetry(`https://api.weather.gov/products?location=${cwa}&type=AFD&limit=1`, { headers });
   if (!productsResponse.ok) {
     throw new Error(`HTTP error! status: ${productsResponse.status}`);
@@ -35,7 +35,10 @@ const fetchAFD = async (cwa: string): Promise<string> => {
     throw new Error(`HTTP error! status: ${afdResponse.status}`);
   }
   const afdData = await afdResponse.json();
-  return afdData.productText || '';
+  return {
+    text: afdData.productText || '',
+    timestamp: afdData.issuanceTime || '',
+  };
 };
 
 export const fetchWeatherData = async (latitude: number, longitude: number): Promise<WeatherData> => {
