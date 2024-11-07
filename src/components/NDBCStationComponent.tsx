@@ -3,7 +3,8 @@ import styled from 'styled-components';
 import { NDBCStation } from '../APIClients/NDBCTypes';
 import { getWindArrow, getWindDirection, formatTimeAgo } from '../utils';
 import SpectralWaveGraph from './SpectralWaveGraph';
-import SpectralDirectionalRose from './SpectralDirectionalRose';
+// import SpectralDirectionalRose from './SpectralDirectionalRose';
+// import PolarSpectrum from './PolarSpectrum';
 
 const StationContainer = styled.div`
   background-color: ${(props) => props.theme.colors.backgroundLight};
@@ -175,7 +176,8 @@ const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
       )}
 
       <SpectralWaveGraph station={station} />
-      <SpectralDirectionalRose station={station} />
+      {/* <SpectralDirectionalRose station={station} />
+      <PolarSpectrum station={station} /> */}
       <StationInfo>
         {station.id} observed {Math.round(station.distance ?? 0)} miles {station.direction} at {station.name} {formatTimeAgo(station.latestObservation.timestamp)}
       </StationInfo>
