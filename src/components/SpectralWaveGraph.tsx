@@ -1,7 +1,7 @@
 import React from 'react';
 import styled, { useTheme } from 'styled-components';
 import { Line } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions } from 'chart.js';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ScriptableContext } from 'chart.js';
 import { NDBCStation } from '../APIClients/NDBCTypes';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
@@ -23,6 +23,23 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
   const frequencies = station.spectralWaveData.spectralData.map((point) => point.frequency);
   const periods = frequencies.map((freq) => (1 / freq).toFixed(1));
 
+  // Create sparse array for swell components
+  const swellComponentsData = new Array(periods.length).fill(null);
+  station.spectralWaveData.swellComponents?.forEach((component) => {
+    // Find the closest period index
+    const periodStr = component.period.toFixed(1);
+    const index = periods.findIndex((p) => p === periodStr);
+    if (index !== -1) {
+      swellComponentsData[index] = component.maxEnergy;
+    }
+  });
+
+  // Calculate max energy value from both datasets
+  const spectralEnergies = station.spectralWaveData.spectralData.map((point) => point.energy);
+  const swellEnergies = swellComponentsData.filter((energy): energy is number => energy !== null);
+  const maxEnergy = Math.max(...spectralEnergies, ...swellEnergies);
+  const yAxisMax = maxEnergy * 1.2; // Add 20% padding
+
   const data = {
     labels: periods,
     datasets: [
@@ -32,6 +49,19 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
         borderColor: 'rgb(53, 162, 235)',
         backgroundColor: 'rgba(53, 162, 235, 0.5)',
         tension: 0.4,
+        pointRadius: 0,
+        pointHoverRadius: 5,
+        pointHoverBackgroundColor: 'rgb(53, 162, 235)',
+        pointHoverBorderColor: 'rgb(53, 162, 235)',
+      },
+      {
+        label: 'Swell Components',
+        data: swellComponentsData,
+        borderColor: 'rgb(255, 99, 132)',
+        backgroundColor: 'rgba(255, 99, 132, 0.8)',
+        showLine: false,
+        pointRadius: (context: ScriptableContext<'line'>) => (context.raw === null ? 0 : 6),
+        pointHoverRadius: (context: ScriptableContext<'line'>) => (context.raw === null ? 0 : 8),
       },
     ],
   };
@@ -42,18 +72,37 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
     plugins: {
       legend: {
         display: false,
+        position: 'top',
+        labels: {
+          color: theme.colors.text.primary,
+        },
       },
       title: {
         display: true,
-        text: `Wave Spectra Density`,
+        text: `Wave Spectral Density`,
         color: theme.colors.text.primary,
       },
       tooltip: {
         callbacks: {
           label: (context) => {
-            const period = parseFloat(context.label);
-            const frequency = (1 / period).toFixed(3);
-            return [`Energy: ${context.parsed.y.toFixed(2)} m²/Hz`, `Frequency: ${frequency} Hz`, `Period: ${period} s`];
+            if (context.datasetIndex === 0) {
+              const period = parseFloat(context.label);
+              const frequency = (1 / period).toFixed(3);
+              return [`Energy: ${context.parsed.y.toFixed(2)} m²/Hz`, `Frequency: ${frequency} Hz`, `Period: ${period} s`];
+            } else if (context.raw !== null) {
+              const period = parseFloat(context.label);
+              const swellComponent = station.spectralWaveData?.swellComponents?.find((comp) => comp.period.toFixed(1) === period.toFixed(1));
+              if (swellComponent) {
+                return [
+                  `Energy: ${swellComponent.maxEnergy.toFixed(2)} m²/Hz`,
+                  `Period: ${swellComponent.period.toFixed(1)} s`,
+                  `Height: ${swellComponent.waveHeight.toFixed(1)} m`,
+                  `Direction: ${swellComponent.compassDirection} (${swellComponent.direction}°)`,
+                ];
+              }
+              return [`Energy: ${context.parsed.y.toFixed(2)} m²/Hz`];
+            }
+            return []; // Return empty array instead of null
           },
         },
       },
@@ -62,6 +111,7 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
       y: {
         type: 'linear',
         beginAtZero: true,
+        max: yAxisMax,
         title: {
           display: true,
           text: 'Spectral Density (m²/Hz)',
