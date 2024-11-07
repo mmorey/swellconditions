@@ -44,6 +44,15 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
     labels: periods,
     datasets: [
       {
+        label: 'Swell Components',
+        data: swellComponentsData,
+        borderColor: 'rgb(255, 99, 132)',
+        backgroundColor: 'rgba(255, 99, 132, 0.8)',
+        showLine: false,
+        pointRadius: (context: ScriptableContext<'line'>) => (context.raw === null ? 0 : 6),
+        pointHoverRadius: (context: ScriptableContext<'line'>) => (context.raw === null ? 0 : 8),
+      },
+      {
         label: 'Wave Energy',
         data: station.spectralWaveData.spectralData.map((point) => point.energy),
         borderColor: 'rgb(53, 162, 235)',
@@ -53,15 +62,6 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
         pointHoverRadius: 5,
         pointHoverBackgroundColor: 'rgb(53, 162, 235)',
         pointHoverBorderColor: 'rgb(53, 162, 235)',
-      },
-      {
-        label: 'Swell Components',
-        data: swellComponentsData,
-        borderColor: 'rgb(255, 99, 132)',
-        backgroundColor: 'rgba(255, 99, 132, 0.8)',
-        showLine: false,
-        pointRadius: (context: ScriptableContext<'line'>) => (context.raw === null ? 0 : 6),
-        pointHoverRadius: (context: ScriptableContext<'line'>) => (context.raw === null ? 0 : 8),
       },
     ],
   };
@@ -85,18 +85,18 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
       tooltip: {
         callbacks: {
           label: (context) => {
-            if (context.datasetIndex === 0) {
+            if (context.datasetIndex === 1) {
               const period = parseFloat(context.label);
               const frequency = (1 / period).toFixed(3);
               return [`Energy: ${context.parsed.y.toFixed(2)} m²/Hz`, `Frequency: ${frequency} Hz`, `Period: ${period} s`];
-            } else if (context.raw !== null) {
+            } else if (context.datasetIndex === 0) {
               const period = parseFloat(context.label);
               const swellComponent = station.spectralWaveData?.swellComponents?.find((comp) => comp.period.toFixed(1) === period.toFixed(1));
               if (swellComponent) {
                 return [
                   `Energy: ${swellComponent.maxEnergy.toFixed(2)} m²/Hz`,
+                  `Height: ${(swellComponent.waveHeight * 3.28084).toFixed(1)} ft`,
                   `Period: ${swellComponent.period.toFixed(1)} s`,
-                  `Height: ${swellComponent.waveHeight.toFixed(1)} m`,
                   `Direction: ${swellComponent.compassDirection} (${swellComponent.direction}°)`,
                 ];
               }
