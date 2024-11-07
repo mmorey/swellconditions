@@ -66,8 +66,8 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
     const currentHour = setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0);
 
     // Calculate exact start and end times
-    const startTime = subHours(currentHour, 3);
-    const endTime = addHours(startTime, 24);
+    const startTime = subHours(currentHour, 6); // Changed from 3 to 6 hours
+    const endTime = addHours(currentHour, 18); // Changed to 18 hours from current time
 
     // Get all historical data
     const allData = waterTemperatureData.data;
@@ -200,7 +200,7 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
       },
       title: {
         display: true,
-        text: `Water Temperature at ${stationName} (${stationID})`,
+        text: `Water Temperature at ${stationName} (${stationID}) History & Forecast`,
         color: theme.colors.text.primary,
       },
       tooltip: {
@@ -265,8 +265,8 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
           },
           tooltipFormat: 'PPpp',
         },
-        min: subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 3).getTime(),
-        max: addHours(subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 3), 24).getTime(),
+        min: subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 6).getTime(), // Changed from 3 to 6 hours
+        max: addHours(now, 18).getTime(), // Changed to show 18 hours ahead from current time
         ticks: {
           color: theme.colors.text.primary,
           padding: 8,

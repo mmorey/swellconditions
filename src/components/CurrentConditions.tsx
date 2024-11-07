@@ -123,7 +123,7 @@ const CurrentConditions: React.FC<CurrentConditionsProps> = ({ weatherData, quer
 
   return (
     <CurrentConditionsContainer>
-      <Title>Current Conditions</Title>
+      <Title>Current Weather Conditions</Title>
       <CurrentConditionsRow>
         <ConditionColumn>
           <LargeValue>{convertTemperature(weatherData.current.properties.temperature.value, weatherData.current.properties.temperature.unitCode).toFixed(1)} °F</LargeValue>

@@ -31,31 +31,59 @@ const AppContainer = styled.div`
   gap: 20px;
 `;
 
-const TitleContainer = styled.div`
+const HeaderContainer = styled.div`
   width: 100%;
-  text-align: center;
-  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+`;
+
+const TitleContainer = styled.div`
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+`;
+
+const TitleGroup = styled.div`
+  display: flex;
+  align-items: center;
+  flex: 1;
+  justify-content: center;
+`;
+
+const Logo = styled.img`
+  width: 24px;
+  height: 24px;
+  display: block;
+
+  @media (prefers-color-scheme: dark) {
+    filter: invert(1);
+  }
 `;
 
 const MainTitle = styled.h1`
-  margin: 0;
-  padding: 0;
   font-size: 24px;
-  line-height: 44px;
+  line-height: 24px;
+  margin: 0 0 0 8px;
 `;
 
 const LocationInfo = styled.h2`
-  margin: 5px 0;
+  margin: 0;
   font-size: 18px;
   font-weight: normal;
+  text-align: center;
 `;
 
-const GearIcon = styled.span`
-  position: absolute;
-  right: 10px;
-  top: 10px;
-  font-size: 24px;
+const SettingsIcon = styled.img`
+  width: 24px;
+  height: 24px;
   cursor: pointer;
+
+  @media (prefers-color-scheme: dark) {
+    filter: invert(1);
+  }
 `;
 
 const ErrorInfo = styled.div`
@@ -173,30 +201,34 @@ const AppContent: React.FC = () => {
 
   return (
     <AppContainer>
-      <TitleContainer>
-        <MainTitle>Swell Conditions</MainTitle>
+      <HeaderContainer>
+        <TitleContainer>
+          <TitleGroup>
+            <Logo src="/logo.svg" alt="Swell Conditions Logo" />
+            <MainTitle>Swell Conditions</MainTitle>
+          </TitleGroup>
+          <SettingsIcon src="/settings.svg" alt="Settings" />
+        </TitleContainer>
         <LocationInfo>
           {weatherData ? `${weatherData.city}, ${weatherData.state}` : 'Loading...'} {coordinates}
         </LocationInfo>
-        <GearIcon role="img" aria-label="Settings">
-          ⚙️
-        </GearIcon>
-      </TitleContainer>
+      </HeaderContainer>
       <SunInformation latitude={latitude} longitude={longitude} />
       {loading && <PlaceholderContainer>Loading data...</PlaceholderContainer>}
       {error && <ErrorInfo>{error}</ErrorInfo>}
       {!loading && !error && weatherData && waterTempData ? (
         <>
           <CurrentConditions weatherData={weatherData} queriedLat={latitude} queriedLon={longitude} />
+          <WindGraph weatherData={weatherData} />
+          {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
+          <WaterTemperatureGraph waterTemperatureData={waterTempData} />
           {stationsToDisplay.map(({ station, distance, direction }) => (
             <CDIPStation key={station.station_number} station={station} distance={distance} direction={direction} />
           ))}
           {ndbcStationsToDisplay.map((station) => (
             <NDBCStationComponent key={station.id} station={station} />
           ))}
-          <WindGraph weatherData={weatherData} />
-          {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
-          <WaterTemperatureGraph waterTemperatureData={waterTempData} />
+
           <CDIPClassicSwellModel latitude={latitude} longitude={longitude} />
           <CDIPClassicSwellModelLocal latitude={latitude} longitude={longitude} />
           {DEBUG_MODE && csvDataUrl && (

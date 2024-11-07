@@ -42,7 +42,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
     const currentHour = setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0);
 
     // Calculate exact start and end times
-    const startTime = subHours(currentHour, 3);
+    const startTime = subHours(currentHour, 6); // Changed from 3 to 6 hours of historical data
     const endTime = addHours(startTime, 24);
 
     // Get the latest water level reading
@@ -75,7 +75,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
     const minHeight = Math.min(...allHeights);
     const maxHeight = Math.max(...allHeights);
     const range = maxHeight - minHeight;
-    const padding = range * 0.4; // Add 20% padding
+    const padding = range * 0.8;
 
     return {
       detailedData: {
@@ -150,7 +150,7 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
       },
       title: {
         display: true,
-        text: `Tides at ${waterLevelData.waterLevel.metadata.name} (${waterLevelData.waterLevel.metadata.id})`,
+        text: `Tides at ${waterLevelData.waterLevel.metadata.name} (${waterLevelData.waterLevel.metadata.id}) History & Forecast`,
         color: theme.colors.text.primary,
       },
       tooltip: {
@@ -221,8 +221,8 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
           },
           tooltipFormat: 'PPpp', // Detailed format for tooltip
         },
-        min: subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 3).getTime(),
-        max: addHours(subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 3), 24).getTime(),
+        min: subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 6).getTime(), // Changed from 3 to 6 hours
+        max: addHours(subHours(setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0), 6), 24).getTime(), // Updated to match new start time
         ticks: {
           color: theme.colors.text.primary,
           padding: 8,

@@ -27,14 +27,14 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
     }[] = [];
 
     const now = new Date();
-    const threeHoursAgo = subHours(now, 3);
+    const sixHoursAgo = subHours(now, 6);
 
     // Process historical observations
     if (weatherData.historical) {
       weatherData.historical.features.forEach((observation) => {
         if (observation.properties.windSpeed && observation.properties.windDirection) {
           const time = new Date(observation.properties.timestamp);
-          if (time >= threeHoursAgo && time <= now) {
+          if (time >= sixHoursAgo && time <= now) {
             hourlyData.push({
               time,
               speed: convertWindSpeed(observation.properties.windSpeed.value, observation.properties.windSpeed.unitCode),
@@ -131,11 +131,11 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
     // Get current time rounded to the nearest hour
     const currentHour = setMilliseconds(setSeconds(setMinutes(now, 0), 0), 0);
 
-    // Calculate start and end times (3 hours back and 21 hours forward)
-    const startTime = subHours(currentHour, 3);
-    const endTime = addHours(currentHour, 21);
+    // Calculate start and end times (6 hours back and 18 hours forward)
+    const startTime = subHours(currentHour, 6);
+    const endTime = addHours(currentHour, 18);
 
-    // Filter data to show 3 hours of history and 21 hours of forecast
+    // Filter data to show 6 hours of history and 18 hours of forecast
     return hourlyData.filter((data) => data.time >= startTime && data.time <= endTime);
   } catch (error) {
     console.error('Error processing wind data:', error);
@@ -243,7 +243,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
       },
       title: {
         display: true,
-        text: 'Wind Forecast',
+        text: 'Wind History & Forecast',
         color: theme.colors.text.primary,
       },
       tooltip: {
@@ -295,8 +295,8 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
           },
           tooltipFormat: 'PPpp',
         },
-        min: subHours(currentHour, 3).getTime(),
-        max: addHours(currentHour, 21).getTime(),
+        min: subHours(currentHour, 6).getTime(),
+        max: addHours(currentHour, 18).getTime(),
         ticks: {
           color: theme.colors.text.primary,
           padding: 8,
