@@ -15,7 +15,8 @@ const theme = {
       link: '#4a90e2',
     },
     chart: {
-      primary: '#4a90e2',
+      primary: 'rgb(53, 162, 235)',
+      secondary: 'rgb(53, 162, 235, 0.3)',
     },
   },
 };

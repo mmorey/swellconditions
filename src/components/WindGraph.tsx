@@ -166,9 +166,6 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
       return latest;
     }, undefined);
 
-  const windSpeedColor = 'rgb(75, 192, 192)';
-  const gustColor = 'rgba(75, 192, 192, 0.25)';
-
   // Find min and max wind speeds from the actual data
   const minSpeed = Math.min(...data.map((d) => d.speed));
   const maxSpeed = Math.max(...data.map((d) => d.speed));
@@ -201,7 +198,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
         type: 'scatter' as const,
         label: 'Wind Speed',
         data: data.map((d) => ({ x: d.time.getTime(), y: d.speed })),
-        backgroundColor: windSpeedColor,
+        backgroundColor: theme.colors.chart.primary,
         pointStyle: data.map((d) => {
           const canvas = document.createElement('canvas');
           const ctx = canvas.getContext('2d');
@@ -212,7 +209,7 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
             ctx.translate(size, size);
             ctx.rotate(((d.direction + 180) * Math.PI) / 180);
             ctx.font = `${size * 2}px Arial`;
-            ctx.fillStyle = windSpeedColor;
+            ctx.fillStyle = theme.colors.chart.primary;
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
             ctx.fillText('↑', 0, 0);
@@ -225,8 +222,8 @@ const WindGraph: React.FC<WindGraphProps> = ({ weatherData }) => {
         type: 'line' as const,
         label: 'Wind Gust',
         data: data.map((d) => ({ x: d.time.getTime(), y: d.gust })),
-        borderColor: gustColor,
-        backgroundColor: gustColor,
+        borderColor: `${theme.colors.chart.secondary}`,
+        backgroundColor: `${theme.colors.chart.secondary}`,
         pointRadius: 1,
         borderWidth: 2,
         fill: false,

@@ -96,8 +96,8 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
     {
       label: 'High/Low Points',
       data: hiLoData,
-      borderColor: 'rgb(255, 99, 132)',
-      backgroundColor: 'rgb(255, 99, 132)',
+      borderColor: `${theme.colors.chart.primary}`,
+      backgroundColor: `${theme.colors.chart.primary}`,
       pointRadius: 6,
       pointHoverRadius: 8,
       showLine: false,
@@ -131,8 +131,8 @@ const TideGraph: React.FC<TideGraphProps> = ({ waterLevelData }) => {
         x: time,
         y: detailedData.heights[index],
       })),
-      borderColor: 'rgb(75, 192, 192)',
-      backgroundColor: 'rgba(75, 192, 192, 0.5)',
+      borderColor: `${theme.colors.chart.primary}`,
+      backgroundColor: `${theme.colors.chart.primary}`,
       tension: 0.4,
       pointRadius: 1,
       datalabels: {
