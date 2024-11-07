@@ -11,8 +11,13 @@ const StationContainer = styled.div`
   border-radius: 10px;
   display: flex;
   flex-direction: column;
+  gap: 10px;
 `;
 
+const TopRow = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
 const Title = styled.h2`
   text-align: center;
   font-size: 12px;
@@ -118,34 +123,36 @@ const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
 
   return (
     <StationContainer>
-      <Title>Buoy {station.id}</Title>
-      <StationRow>
-        <DataColumnsWrapper>
-          <DataColumn>
-            <Label>Significant Wave Height</Label>
-            <LargeValue>{waveHeightFeet?.toFixed(1) ?? 'N/A'} ft</LargeValue>
-          </DataColumn>
-          <DataColumn>
-            <Label>Dominant Wave Period</Label>
-            <LargeValue>{station.latestObservation.dominantWavePeriod?.toFixed(1) ?? 'N/A'} s</LargeValue>
-          </DataColumn>
-          {station.latestObservation.meanWaveDirection !== null && (
+      <TopRow>
+        <Title>Buoy {station.id}</Title>
+        <StationRow>
+          <DataColumnsWrapper>
             <DataColumn>
-              <Label>Mean Wave Direction</Label>
-              <LargeValue>
-                {station.latestObservation.meanWaveDirection}° {getWindDirection(station.latestObservation.meanWaveDirection)}
-                <DirectionArrow $rotation={station.latestObservation.meanWaveDirection}>{getWindArrow(station.latestObservation.meanWaveDirection).arrow}</DirectionArrow>
-              </LargeValue>
+              <Label>Significant Wave Height</Label>
+              <LargeValue>{waveHeightFeet?.toFixed(1) ?? 'N/A'} ft</LargeValue>
             </DataColumn>
-          )}
-          {temperatureF !== null && (
             <DataColumn>
-              <Label>Water Temp</Label>
-              <LargeValue>{temperatureF.toFixed(1)}°F</LargeValue>
+              <Label>Dominant Wave Period</Label>
+              <LargeValue>{station.latestObservation.dominantWavePeriod?.toFixed(1) ?? 'N/A'} s</LargeValue>
             </DataColumn>
-          )}
-        </DataColumnsWrapper>
-      </StationRow>
+            {station.latestObservation.meanWaveDirection !== null && (
+              <DataColumn>
+                <Label>Mean Wave Direction</Label>
+                <LargeValue>
+                  {station.latestObservation.meanWaveDirection}° {getWindDirection(station.latestObservation.meanWaveDirection)}
+                  <DirectionArrow $rotation={station.latestObservation.meanWaveDirection}>{getWindArrow(station.latestObservation.meanWaveDirection).arrow}</DirectionArrow>
+                </LargeValue>
+              </DataColumn>
+            )}
+            {temperatureF !== null && (
+              <DataColumn>
+                <Label>Water Temp</Label>
+                <LargeValue>{temperatureF.toFixed(1)}°F</LargeValue>
+              </DataColumn>
+            )}
+          </DataColumnsWrapper>
+        </StationRow>
+      </TopRow>
 
       {station.spectralWaveData?.swellComponents && station.spectralWaveData.swellComponents.length > 0 && (
         <SwellComponentsContainer>
