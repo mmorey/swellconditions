@@ -20,6 +20,7 @@ import CDIPClassicSwellModel from './components/CDIPClassicSwellModel';
 import CDIPClassicSwellModelLocal from './components/CDIPClassicSwellModelLocal';
 import { calculateDistance, getDirection } from './utils';
 import SatelliteViewer from './components/SatelliteViewer';
+import AFD from './components/AFD';
 
 // Debug flag
 const DEBUG_MODE = false;
@@ -168,6 +169,9 @@ const AppContent: React.FC = () => {
         setWaterLevelData(waterLevelResult);
         setCdipStations(cdipStationsResult);
         setNdbcStations(ndbcStationsResult);
+
+        // Log the AFD when weather data is loaded
+        console.log('Area Forecast Discussion:', weatherResult.afd);
       } catch (e) {
         setError(`Failed to fetch data: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
@@ -223,6 +227,7 @@ const AppContent: React.FC = () => {
           <WindGraph weatherData={weatherData} />
           {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
           <WaterTemperatureGraph waterTemperatureData={waterTempData} />
+          {weatherData.afd && <AFD afd={weatherData.afd} />}
           {stationsToDisplay.map(({ station, distance, direction }) => (
             <CDIPStation key={station.station_number} station={station} distance={distance} direction={direction} />
           ))}

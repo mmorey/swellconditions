@@ -22,6 +22,22 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, de
   }
 };
 
+const fetchAFD = async (cwa: string): Promise<string> => {
+  const productsResponse = await fetchWithRetry(`https://api.weather.gov/products?location=${cwa}&type=AFD&limit=1`, { headers });
+  if (!productsResponse.ok) {
+    throw new Error(`HTTP error! status: ${productsResponse.status}`);
+  }
+  const productsData = await productsResponse.json();
+  const afdUrl = productsData['@graph'][0]['@id'];
+
+  const afdResponse = await fetchWithRetry(afdUrl, { headers });
+  if (!afdResponse.ok) {
+    throw new Error(`HTTP error! status: ${afdResponse.status}`);
+  }
+  const afdData = await afdResponse.json();
+  return afdData.productText || '';
+};
+
 export const fetchWeatherData = async (latitude: number, longitude: number): Promise<WeatherData> => {
   const roundedLat = latitude.toFixed(4);
   const roundedLon = longitude.toFixed(4);
@@ -36,6 +52,7 @@ export const fetchWeatherData = async (latitude: number, longitude: number): Pro
   const data: WeatherGovAPIResponse = await response.json();
   const forecast = await fetchForecastData(data.properties.forecastGridData);
   const { current, historical } = await fetchObservations(data.properties.observationStations);
+  const afd = await fetchAFD(data.properties.cwa);
 
   return {
     forecast,
@@ -44,6 +61,7 @@ export const fetchWeatherData = async (latitude: number, longitude: number): Pro
     city: data.properties.relativeLocation.properties.city,
     state: data.properties.relativeLocation.properties.state,
     cwa: data.properties.cwa,
+    afd,
   };
 };
 
