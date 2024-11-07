@@ -3,6 +3,7 @@ import styled, { useTheme } from 'styled-components';
 import { Line } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ScriptableContext } from 'chart.js';
 import { NDBCStation } from '../APIClients/NDBCTypes';
+import { getWindDirection } from '../utils';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
 
@@ -51,6 +52,7 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
         showLine: false,
         pointRadius: (context: ScriptableContext<'line'>) => (context.raw === null ? 0 : 6),
         pointHoverRadius: (context: ScriptableContext<'line'>) => (context.raw === null ? 0 : 8),
+        yAxisID: 'y',
       },
       {
         label: 'Wave Energy',
@@ -62,6 +64,17 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
         pointHoverRadius: 5,
         pointHoverBackgroundColor: 'rgb(53, 162, 235)',
         pointHoverBorderColor: 'rgb(53, 162, 235)',
+        yAxisID: 'y',
+      },
+      {
+        label: 'Direction',
+        data: station.spectralWaveData.spectralData.map((point) => point.angle),
+        borderColor: 'rgb(75, 192, 192)',
+        backgroundColor: 'rgba(75, 192, 192, 0.8)',
+        showLine: false,
+        pointRadius: 2,
+        pointHoverRadius: 6,
+        yAxisID: 'y1',
       },
     ],
   };
@@ -85,24 +98,28 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
       tooltip: {
         callbacks: {
           label: (context) => {
-            if (context.datasetIndex === 1) {
-              const period = parseFloat(context.label);
-              const frequency = (1 / period).toFixed(3);
-              return [`Energy: ${context.parsed.y.toFixed(2)} m²/Hz`, `Frequency: ${frequency} Hz`, `Period: ${period} s`];
-            } else if (context.datasetIndex === 0) {
-              const period = parseFloat(context.label);
-              const swellComponent = station.spectralWaveData?.swellComponents?.find((comp) => comp.period.toFixed(1) === period.toFixed(1));
-              if (swellComponent) {
-                return [
-                  `Energy: ${swellComponent.maxEnergy.toFixed(2)} m²/Hz`,
-                  `Height: ${(swellComponent.waveHeight * 3.28084).toFixed(1)} ft`,
-                  `Period: ${swellComponent.period.toFixed(1)} s`,
-                  `Direction: ${swellComponent.compassDirection} (${swellComponent.direction}°)`,
-                ];
-              }
-              return [`Energy: ${context.parsed.y.toFixed(2)} m²/Hz`];
+            const period = parseFloat(context.label);
+            const frequency = (1 / period).toFixed(3);
+            const swellComponent = station.spectralWaveData?.swellComponents?.find((comp) => comp.period.toFixed(1) === period.toFixed(1));
+
+            const labels = [`Energy: ${context.parsed.y.toFixed(2)} m²/Hz`, `Period: ${period} s`, `Frequency: ${frequency} Hz`];
+
+            if (swellComponent) {
+              labels.splice(1, 0, `Height: ${(swellComponent.waveHeight * 3.28084).toFixed(1)} ft`);
             }
-            return []; // Return empty array instead of null
+
+            // Add direction based on the dataset
+            if (swellComponent) {
+              labels.push(`Direction: ${swellComponent.compassDirection} (${swellComponent.direction}°)`);
+            } else if (context.datasetIndex === 2) {
+              labels.push(`Direction: ${getWindDirection(context.parsed.y)} (${context.parsed.y.toFixed(0)}°)`);
+            } else {
+              const spectralDataPoint = station.spectralWaveData?.spectralData[context.dataIndex];
+              if (spectralDataPoint) {
+                labels.push(`Direction: ${getWindDirection(spectralDataPoint.angle)} (${spectralDataPoint.angle.toFixed(0)}°)`);
+              }
+            }
+            return labels;
           },
         },
       },
@@ -112,6 +129,7 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
         type: 'linear',
         beginAtZero: true,
         max: yAxisMax,
+        position: 'left',
         title: {
           display: true,
           text: 'Spectral Density (m²/Hz)',
@@ -123,6 +141,25 @@ const SpectralWaveGraph: React.FC<SpectralWaveGraphProps> = ({ station }) => {
         },
         grid: {
           color: 'rgba(255, 255, 255, 0.1)',
+        },
+      },
+      y1: {
+        type: 'linear',
+        beginAtZero: true,
+        max: 360,
+        position: 'right',
+        title: {
+          display: true,
+          text: 'Direction (°)',
+          color: theme.colors.text.primary,
+        },
+        ticks: {
+          color: theme.colors.text.primary,
+          padding: 8,
+          stepSize: 45,
+        },
+        grid: {
+          drawOnChartArea: false,
         },
       },
       x: {
