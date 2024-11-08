@@ -23,15 +23,27 @@ const ContentContainer = styled.div`
     text-transform: capitalize;
   }
 
-  pre {
-    white-space: pre;
-    word-wrap: normal;
+  h3 {
+    color: ${(props) => props.theme.colors.text.primary};
+    font-size: 1rem;
+    margin: 1rem 0 0.5rem 0;
+    text-transform: capitalize;
+  }
+
+  p {
     margin: 0.5rem 0;
-    font-family: monospace;
     font-size: 0.85rem;
     line-height: 1.4;
     color: ${(props) => props.theme.colors.text.primary};
-    overflow-x: auto;
+  }
+
+  .tide-data {
+    margin-left: 2rem;
+  }
+
+  .tide-location {
+    margin-left: 2rem;
+    font-weight: bold;
   }
 `;
 
@@ -96,13 +108,90 @@ const SRF: React.FC<SRFProps> = ({ srf, wfo, timestamp }) => {
 
   useEffect(() => {
     const formatSRF = () => {
-      // Remove any carriage returns and extra newlines
-      const cleanedText = srf
-        .replace(/\r/g, '')
-        .replace(/\n{3,}/g, '\n\n')
-        .trim();
+      // Remove any carriage returns
+      const cleanedText = srf.replace(/\r/g, '');
 
-      setFormattedContent(<pre>{cleanedText}</pre>);
+      // Split into lines
+      const lines = cleanedText.split('\n');
+
+      let inTideSection = false;
+      let expectingTideLocation = false;
+      let foundFirstHeading = false;
+
+      // Process each line
+      const formattedLines = lines
+        .map((line) => {
+          // Convert .WORD... pattern to heading
+          const headingMatch = line.match(/^\.([\w]+)\.\.\.$/);
+          if (headingMatch) {
+            foundFirstHeading = true;
+            inTideSection = false;
+            expectingTideLocation = false;
+            return `<h2>${headingMatch[1].toLowerCase()}</h2>`;
+          }
+
+          // Skip all lines until we find the first heading
+          if (!foundFirstHeading) {
+            return null;
+          }
+
+          // Skip empty lines and lines with just &&
+          if (line.trim() === '' || line.trim() === '&&') {
+            return null;
+          }
+
+          // Detect Tides... pattern as subheading
+          const tidesMatch = line.match(/^Tides\.+$/);
+          if (tidesMatch) {
+            inTideSection = true;
+            expectingTideLocation = true;
+            return `<h3>Tides</h3>`;
+          }
+
+          // If we're expecting a tide location and the line is indented
+          if (expectingTideLocation && line.startsWith(' ')) {
+            expectingTideLocation = false;
+            // Extract location name from the line
+            const locationMatch = line.match(/^\s+([^\.]+)\.+/);
+            if (locationMatch) {
+              const location = locationMatch[1].trim();
+              // Return just the location as a separate line
+              return `<p class="tide-location">${location}</p>`;
+            }
+          }
+
+          // Convert Key............Value format to Key: Value
+          const keyValueMatch = line.match(/^([^\.]+)\.+\s*([^\.]+)\.?$/);
+          if (keyValueMatch) {
+            const [, key, value] = keyValueMatch;
+            // Remove any trailing asterisks from the key
+            const cleanKey = key.replace(/\*+$/, '').trim();
+
+            // If we find a non-indented key-value pair and we're not expecting a tide location,
+            // we're no longer in the tide section
+            if (!line.trim().startsWith(' ') && !expectingTideLocation) {
+              inTideSection = false;
+              return `<p>${cleanKey}: ${value.trim()}</p>`;
+            }
+
+            if (inTideSection) {
+              return `<p class="tide-data">${value.trim()}</p>`;
+            }
+            return `<p>${cleanKey}: ${value.trim()}</p>`;
+          }
+
+          // Handle indented tide data lines that don't match the key-value pattern
+          if (inTideSection && line.trim().startsWith(' ')) {
+            return `<p class="tide-data">${line.trim()}</p>`;
+          }
+
+          // Wrap any remaining lines in paragraph tags
+          return `<p>${line}</p>`;
+        })
+        .filter((line) => line !== null) // Remove null lines
+        .join('');
+
+      setFormattedContent(<div dangerouslySetInnerHTML={{ __html: formattedLines }} />);
     };
 
     formatSRF();
