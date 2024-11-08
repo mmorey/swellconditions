@@ -170,9 +170,6 @@ const AppContent: React.FC = () => {
         setWaterLevelData(waterLevelResult);
         setCdipStations(cdipStationsResult);
         setNdbcStations(ndbcStationsResult);
-
-        // Log the AFD when weather data is loaded
-        console.log('Area Forecast Discussion:', weatherResult.afd);
       } catch (e) {
         setError(`Failed to fetch data: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
@@ -229,7 +226,7 @@ const AppContent: React.FC = () => {
           {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
           <WaterTemperatureGraph waterTemperatureData={waterTempData} />
           {weatherData.afd && <AFD afd={weatherData.afd.text} wfo={weatherData.cwa} timestamp={weatherData.afd.timestamp} />}
-          {weatherData.srf && <SRF srf={weatherData.srf.text} wfo={weatherData.cwa} timestamp={weatherData.srf.timestamp} />}
+          {weatherData.srf && <SRF srf={weatherData.srf.text} wfo={weatherData.cwa} timestamp={weatherData.srf.timestamp} simpleFormat={true} />}
           {stationsToDisplay.map(({ station, distance, direction }) => (
             <CDIPStation key={station.station_number} station={station} distance={distance} direction={direction} />
           ))}

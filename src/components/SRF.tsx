@@ -31,7 +31,15 @@ const ContentContainer = styled.div`
   }
 
   p {
+    margin: 0;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: ${(props) => props.theme.colors.text.primary};
+  }
+
+  ul {
     margin: 0.5rem 0;
+    padding-left: 2rem;
     font-size: 0.85rem;
     line-height: 1.4;
     color: ${(props) => props.theme.colors.text.primary};
@@ -44,6 +52,23 @@ const ContentContainer = styled.div`
   .tide-location {
     margin-left: 2rem;
     font-weight: bold;
+    margin-top: 0.5rem;
+  }
+
+  .warning {
+    color: #d32f2f;
+    font-weight: bold;
+    margin: 0.5rem 0;
+  }
+
+  pre {
+    font-family: monospace;
+    white-space: pre;
+    overflow-x: auto;
+    font-size: 0.85rem;
+    line-height: 1.4;
+    color: ${(props) => props.theme.colors.text.primary};
+    margin: 0;
   }
 `;
 
@@ -100,14 +125,23 @@ interface SRFProps {
   srf: string;
   wfo: string;
   timestamp: string;
+  simpleFormat?: boolean;
 }
 
-const SRF: React.FC<SRFProps> = ({ srf, wfo, timestamp }) => {
+const SRF: React.FC<SRFProps> = ({ srf, wfo, timestamp, simpleFormat = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [formattedContent, setFormattedContent] = useState<JSX.Element | null>(null);
 
   useEffect(() => {
     const formatSRF = () => {
+      // If simpleFormat is true, just wrap in pre tag
+      if (simpleFormat) {
+        // Remove any carriage returns and first 8 lines
+        const cleanedText = srf.replace(/\r/g, '').split('\n').slice(8).join('\n');
+        setFormattedContent(<pre>{cleanedText}</pre>);
+        return;
+      }
+
       // Remove any carriage returns
       const cleanedText = srf.replace(/\r/g, '');
 
@@ -115,28 +149,70 @@ const SRF: React.FC<SRFProps> = ({ srf, wfo, timestamp }) => {
       const lines = cleanedText.split('\n');
 
       let inTideSection = false;
-      let expectingTideLocation = false;
-      let foundFirstHeading = false;
+      let lineCount = 0;
+      let inBulletList = false;
+      let currentBulletList: string[] = [];
 
       // Process each line
       const formattedLines = lines
-        .map((line) => {
-          // Convert .WORD... pattern to heading
-          const headingMatch = line.match(/^\.([\w]+)\.\.\.$/);
-          if (headingMatch) {
-            foundFirstHeading = true;
-            inTideSection = false;
-            expectingTideLocation = false;
-            return `<h2>${headingMatch[1].toLowerCase()}</h2>`;
+        .map((line, index) => {
+          lineCount++;
+
+          // Skip the first 8 lines
+          if (lineCount <= 8) {
+            return null;
           }
 
-          // Skip all lines until we find the first heading
-          if (!foundFirstHeading) {
-            return null;
+          // Check for warning pattern
+          const warningMatch = line.match(/\.\.\.([A-Z\s]+(?:RISK|WARNING|ADVISORY))\.\.\.$/);
+          if (warningMatch) {
+            const warning = warningMatch[1]
+              .toLowerCase()
+              .split(' ')
+              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+              .join(' ');
+            return `<p class="warning">Warning: ${warning}</p>`;
+          }
+
+          // Convert .WORD... pattern to heading
+          const headingMatch = line.match(/^\.([\w\s]+)\.\.\.$/);
+          if (headingMatch) {
+            // If we were in a bullet list, close it before the heading
+            if (inBulletList) {
+              const list = `<ul>${currentBulletList.join('')}</ul>`;
+              currentBulletList = [];
+              inBulletList = false;
+              return list + `<h2>${headingMatch[1].toLowerCase()}</h2>`;
+            }
+            inTideSection = false;
+            return `<h2>${headingMatch[1].toLowerCase()}</h2>`;
           }
 
           // Skip empty lines and lines with just &&
           if (line.trim() === '' || line.trim() === '&&') {
+            // If we were in a bullet list, close it before the empty line
+            if (inBulletList) {
+              const list = `<ul>${currentBulletList.join('')}</ul>`;
+              currentBulletList = [];
+              inBulletList = false;
+              return list;
+            }
+            return null;
+          }
+
+          // Handle bullet points
+          const bulletMatch = line.match(/^\s*\*\s*(.+)$/);
+          if (bulletMatch) {
+            inBulletList = true;
+            currentBulletList.push(`<li>${bulletMatch[1]}</li>`);
+
+            // If this is the last line or the next line doesn't start with *, output the list
+            if (index === lines.length - 1 || !lines[index + 1].trim().startsWith('*')) {
+              const list = `<ul>${currentBulletList.join('')}</ul>`;
+              currentBulletList = [];
+              inBulletList = false;
+              return list;
+            }
             return null;
           }
 
@@ -144,19 +220,22 @@ const SRF: React.FC<SRFProps> = ({ srf, wfo, timestamp }) => {
           const tidesMatch = line.match(/^Tides\.+$/);
           if (tidesMatch) {
             inTideSection = true;
-            expectingTideLocation = true;
             return `<h3>Tides</h3>`;
           }
 
-          // If we're expecting a tide location and the line is indented
-          if (expectingTideLocation && line.startsWith(' ')) {
-            expectingTideLocation = false;
-            // Extract location name from the line
-            const locationMatch = line.match(/^\s+([^\.]+)\.+/);
+          // If we're in tide section and the line is indented
+          if (inTideSection && line.trim().length > 0) {
+            // Check for location line with tide data
+            const locationMatch = line.match(/^\s+([^\.]+)\.+\s*((?:High|Low)\s+[\d\.]+\s+feet\s+\(MLLW\)\s+[\d:]+\s+(?:AM|PM)\s+PST)\.$/);
             if (locationMatch) {
-              const location = locationMatch[1].trim();
-              // Return just the location as a separate line
-              return `<p class="tide-location">${location}</p>`;
+              const [, location, tideData] = locationMatch;
+              return `<p class="tide-location">${location.trim()}</p><p class="tide-data">${tideData.trim()}</p>`;
+            }
+
+            // Handle subsequent tide data lines
+            const tideMatch = line.match(/^\s+(?:High|Low)\s+([\d\.]+)\s+feet\s+\(MLLW\)\s+([\d:]+\s+(?:AM|PM)\s+PST)\.$/);
+            if (tideMatch) {
+              return `<p class="tide-data">${line.trim()}</p>`;
             }
           }
 
@@ -166,23 +245,7 @@ const SRF: React.FC<SRFProps> = ({ srf, wfo, timestamp }) => {
             const [, key, value] = keyValueMatch;
             // Remove any trailing asterisks from the key
             const cleanKey = key.replace(/\*+$/, '').trim();
-
-            // If we find a non-indented key-value pair and we're not expecting a tide location,
-            // we're no longer in the tide section
-            if (!line.trim().startsWith(' ') && !expectingTideLocation) {
-              inTideSection = false;
-              return `<p>${cleanKey}: ${value.trim()}</p>`;
-            }
-
-            if (inTideSection) {
-              return `<p class="tide-data">${value.trim()}</p>`;
-            }
             return `<p>${cleanKey}: ${value.trim()}</p>`;
-          }
-
-          // Handle indented tide data lines that don't match the key-value pattern
-          if (inTideSection && line.trim().startsWith(' ')) {
-            return `<p class="tide-data">${line.trim()}</p>`;
           }
 
           // Wrap any remaining lines in paragraph tags
@@ -195,7 +258,7 @@ const SRF: React.FC<SRFProps> = ({ srf, wfo, timestamp }) => {
     };
 
     formatSRF();
-  }, [srf]);
+  }, [srf, simpleFormat]);
 
   return (
     <SRFContainer>

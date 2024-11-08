@@ -1,22 +1,22 @@
 {
-    // Use IntelliSense to learn about possible attributes.
-    // Hover to view descriptions of existing attributes.
-    // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
-    "version": "0.2.0",
-    "configurations": [
-        {
-            "type": "chrome",
-            "request": "launch",
-            "name": "Launch Chrome against localhost",
-            "url": "http://localhost:5173/?lat=37.7749&lon=-122.4194",
-            "webRoot": "${workspaceFolder}"
-        },
-                {
-            "type": "node",
-            "request": "launch",
-            "name": "Run 9band.js",
-            "program": "${workspaceFolder}/9band.js",
-            "args": ["46232"]
-        }
-    ]
+  // Use IntelliSense to learn about possible attributes.
+  // Hover to view descriptions of existing attributes.
+  // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "chrome",
+      "request": "launch",
+      "name": "Launch Chrome against localhost",
+      "url": "http://localhost:5173/?lat=32.807566&lon=-117.269747&ndbc=46232",
+      "webRoot": "${workspaceFolder}"
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "Run 9band.js",
+      "program": "${workspaceFolder}/9band.js",
+      "args": ["46232"]
+    }
+  ]
 }
