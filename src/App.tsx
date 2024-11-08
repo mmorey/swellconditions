@@ -21,6 +21,7 @@ import CDIPClassicSwellModelLocal from './components/CDIPClassicSwellModelLocal'
 import { calculateDistance, getDirection } from './utils';
 import SatelliteViewer from './components/SatelliteViewer';
 import AFD from './components/AFD';
+import SRF from './components/SRF';
 
 // Debug flag
 const DEBUG_MODE = false;
@@ -228,6 +229,7 @@ const AppContent: React.FC = () => {
           {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
           <WaterTemperatureGraph waterTemperatureData={waterTempData} />
           {weatherData.afd && <AFD afd={weatherData.afd.text} wfo={weatherData.cwa} timestamp={weatherData.afd.timestamp} />}
+          {weatherData.srf && <SRF srf={weatherData.srf.text} wfo={weatherData.cwa} timestamp={weatherData.srf.timestamp} />}
           {stationsToDisplay.map(({ station, distance, direction }) => (
             <CDIPStation key={station.station_number} station={station} distance={distance} direction={direction} />
           ))}
