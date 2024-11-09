@@ -7,8 +7,8 @@
     {
       "type": "chrome",
       "request": "launch",
-      "name": "Launch Chrome against localhost",
-      "url": "http://localhost:5173/?lat=32.807566&lon=-117.269747&ndbc=46232",
+      "name": "Hairmos with all settings",
+      "url": "http://localhost:5173/?lat=32.807566&lon=-117.269747&ndbc=46232&nwsstation=msdsd,d3101,ksan&videourl=https%3A%2F%2Fcdn3.wowza.com%2F5%2FU2lzUXNxenhyV2Zk%2Fsunba%2Fwindansea%2Fplaylist.m3u8",
       "webRoot": "${workspaceFolder}"
     },
     {

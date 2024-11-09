@@ -22,6 +22,7 @@ import { calculateDistance, getDirection } from './utils';
 import SatelliteViewer from './components/SatelliteViewer';
 import AFD from './components/AFD';
 import SRF from './components/SRF';
+import VideoPlayer from './components/VideoPlayer';
 
 // Debug flag
 const DEBUG_MODE = false;
@@ -124,6 +125,8 @@ const AppContent: React.FC = () => {
   const nwsstation = searchParams.get('nwsstation');
   const cdipParam = searchParams.get('cdip');
   const ndbcParam = searchParams.get('ndbc');
+  const videoUrl = searchParams.get('videourl');
+  const rotationInterval = searchParams.get('videorotation');
 
   const [tideStation, setTideStation] = useState<string | null>(searchParams.get('tideStation'));
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
@@ -217,6 +220,7 @@ const AppContent: React.FC = () => {
           {weatherData ? `${weatherData.city}, ${weatherData.state}` : 'Loading...'} {coordinates}
         </LocationInfo>
       </HeaderContainer>
+      {videoUrl && <VideoPlayer playlistUrl={videoUrl} rotationInterval={rotationInterval ? parseInt(rotationInterval) : undefined} />}
       <SunInformation latitude={latitude} longitude={longitude} />
       {loading && <PlaceholderContainer>Loading data...</PlaceholderContainer>}
       {error && <ErrorInfo>{error}</ErrorInfo>}
