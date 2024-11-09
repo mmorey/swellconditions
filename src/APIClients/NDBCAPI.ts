@@ -297,8 +297,6 @@ export async function fetchRawSpectralWaveData(stationID: string): Promise<Spect
   // Calculate swell components from spectral data
   const swellComponents = calculateSwellComponents(spectralData);
 
-  console.log('Spectral Data:', spectralData);
-  console.log('Swell Components:', swellComponents);
   return {
     timestamp,
     separationFrequency,
