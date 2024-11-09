@@ -3,7 +3,7 @@ import { Chart } from 'react-chartjs-2';
 import { Chart as ChartJS, TimeScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ChartOptions, ChartData, ScatterController, LineController } from 'chart.js';
 import { getWindDirection, parseISO8601Duration, convertWindSpeed } from '../utils';
 import styled, { useTheme } from 'styled-components';
-import { WeatherData } from '../APIClients/WeatherGovTypes';
+import { WeatherData, HistoricalConditionsAPIResponse } from '../APIClients/WeatherGovTypes';
 import 'chartjs-adapter-date-fns';
 import annotationPlugin from 'chartjs-plugin-annotation';
 import { addHours, subHours, setMinutes, setSeconds, setMilliseconds } from 'date-fns';
@@ -29,9 +29,9 @@ export const processWeatherGovWindData = (weatherData: WeatherData | null) => {
     const now = new Date();
     const sixHoursAgo = subHours(now, 6);
 
-    // Process historical observations
-    if (weatherData.historical) {
-      weatherData.historical.features.forEach((observation) => {
+    // Process historical observations from the first station
+    if (weatherData.stations[0]?.historical) {
+      weatherData.stations[0].historical.features.forEach((observation: HistoricalConditionsAPIResponse['features'][0]) => {
         if (observation.properties.windSpeed && observation.properties.windDirection) {
           const time = new Date(observation.properties.timestamp);
           if (time >= sixHoursAgo && time <= now) {

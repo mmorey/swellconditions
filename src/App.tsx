@@ -120,6 +120,11 @@ const AppContent: React.FC = () => {
   const [searchParams] = useSearchParams();
   const latitude = parseFloat(searchParams.get('lat') || '37.7749');
   const longitude = parseFloat(searchParams.get('lon') || '-122.4194');
+  const coordinates = `(${latitude}, ${longitude})`;
+  const nwsstation = searchParams.get('nwsstation');
+  const cdipParam = searchParams.get('cdip');
+  const ndbcParam = searchParams.get('ndbc');
+
   const [tideStation, setTideStation] = useState<string | null>(searchParams.get('tideStation'));
   const [weatherData, setWeatherData] = useState<WeatherData | null>(null);
   const [waterTempData, setWaterTempData] = useState<TidesAndCurrentsGovWaterTemperatureAPIResponse | null>(null);
@@ -130,16 +135,12 @@ const AppContent: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [csvDataUrl, setCsvDataUrl] = useState<string | null>(null);
 
-  const coordinates = `(${latitude}, ${longitude})`;
-  const cdipParam = searchParams.get('cdip');
-  const ndbcParam = searchParams.get('ndbc');
-
   useEffect(() => {
     const fetchData = async () => {
       setLoading(true);
       setError(null);
       try {
-        const weatherPromise = fetchWeatherData(latitude, longitude);
+        const weatherPromise = fetchWeatherData(latitude, longitude, nwsstation);
 
         let selectedTideStation = tideStation;
         if (!selectedTideStation) {
@@ -178,7 +179,7 @@ const AppContent: React.FC = () => {
     };
 
     fetchData();
-  }, [latitude, longitude, tideStation, cdipParam, ndbcParam]);
+  }, [latitude, longitude, tideStation, cdipParam, ndbcParam, nwsstation]);
 
   useEffect(() => {
     if (DEBUG_MODE && weatherData) {

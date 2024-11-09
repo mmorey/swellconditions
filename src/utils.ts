@@ -75,22 +75,27 @@ export const formatTimeAgo = (timestamp: string | Date): string => {
   let date: Date;
 
   if (typeof timestamp === 'string') {
-    // Parse CDIP timestamp format: mm.dd.YYYY-HH:MM:ss (UTC)
-    const [datePart, timePart] = timestamp.split('-');
-    const [month, day, year] = datePart.split('.');
-    const [hours, minutes, seconds] = timePart.split(':');
+    // Check if timestamp is in ISO 8601 format (e.g., "2024-11-09T14:51:00+00:00")
+    if (timestamp.includes('T')) {
+      date = new Date(timestamp);
+    } else {
+      // Parse CDIP timestamp format: mm.dd.YYYY-HH:MM:ss (UTC)
+      const [datePart, timePart] = timestamp.split('-');
+      const [month, day, year] = datePart.split('.');
+      const [hours, minutes, seconds] = timePart.split(':');
 
-    // Create date in UTC
-    date = new Date(
-      Date.UTC(
-        parseInt(year),
-        parseInt(month) - 1, // JavaScript months are 0-based
-        parseInt(day),
-        parseInt(hours),
-        parseInt(minutes),
-        parseInt(seconds)
-      )
-    );
+      // Create date in UTC
+      date = new Date(
+        Date.UTC(
+          parseInt(year),
+          parseInt(month) - 1, // JavaScript months are 0-based
+          parseInt(day),
+          parseInt(hours),
+          parseInt(minutes),
+          parseInt(seconds)
+        )
+      );
+    }
   } else {
     date = timestamp;
   }

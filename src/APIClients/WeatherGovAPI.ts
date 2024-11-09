@@ -1,4 +1,4 @@
-import { WeatherGovAPIResponse, ForecastGridDataAPIResponse, CurrentConditionsAPIResponse, WeatherData, HistoricalConditionsAPIResponse, AFDData, SRFData } from './WeatherGovTypes';
+import { WeatherGovAPIResponse, ForecastGridDataAPIResponse, WeatherData, AFDData, SRFData, StationData } from './WeatherGovTypes';
 import { parseISO8601Duration } from '../utils';
 
 const headers = {
@@ -70,7 +70,7 @@ const fetchAFDAndSRF = async (cwa: string): Promise<{ afd: AFDData; srf: SRFData
   };
 };
 
-export const fetchWeatherData = async (latitude: number, longitude: number): Promise<WeatherData> => {
+export const fetchWeatherData = async (latitude: number, longitude: number, nwsstation: string | null = null): Promise<WeatherData> => {
   const roundedLat = latitude.toFixed(4);
   const roundedLon = longitude.toFixed(4);
   const response = await fetchWithRetry(`https://api.weather.gov/points/${roundedLat},${roundedLon}`, {
@@ -83,13 +83,12 @@ export const fetchWeatherData = async (latitude: number, longitude: number): Pro
 
   const data: WeatherGovAPIResponse = await response.json();
   const forecast = await fetchForecastData(data.properties.forecastGridData);
-  const { current, historical } = await fetchObservations(data.properties.observationStations);
+  const stations = await fetchObservations(data.properties.observationStations, nwsstation);
   const { afd, srf } = await fetchAFDAndSRF(data.properties.cwa);
 
   return {
+    stations,
     forecast,
-    current,
-    historical,
     city: data.properties.relativeLocation.properties.city,
     state: data.properties.relativeLocation.properties.state,
     cwa: data.properties.cwa,
@@ -106,55 +105,87 @@ const fetchForecastData = async (forecastGridDataUrl: string): Promise<ForecastG
   return await response.json();
 };
 
-const fetchObservations = async (observationStationsUrl: string): Promise<{ current: CurrentConditionsAPIResponse; historical: HistoricalConditionsAPIResponse }> => {
+const fetchObservations = async (observationStationsUrl: string, specificStations: string | null = null): Promise<StationData[]> => {
   const stationsResponse = await fetchWithRetry(observationStationsUrl, { headers });
   if (!stationsResponse.ok) {
     throw new Error(`HTTP error! status: ${stationsResponse.status}`);
   }
   const stationsData = await stationsResponse.json();
 
+  // If specific stations are requested, try to find them first
+  if (specificStations) {
+    const stationIds = specificStations.split(',').map((s) => s.trim().toUpperCase());
+    const stations: StationData[] = [];
+
+    for (const stationId of stationIds) {
+      const station = stationsData.features.find((s: any) => s.properties.stationIdentifier === stationId);
+      if (station) {
+        const stationData = await fetchStationData(station);
+        if (stationData) {
+          stations.push(stationData);
+        }
+      } else {
+        console.warn(`Station ${stationId} not found in available stations`);
+      }
+    }
+
+    if (stations.length > 0) {
+      return stations;
+    }
+    throw new Error(`No valid stations found from specified stations: ${specificStations}`);
+  }
+
+  // If no specific stations provided or if none were found, use the original logic
   for (let i = 0; i < Math.min(10, stationsData.features.length); i++) {
     const station = stationsData.features[i];
-    const stationId = station.id;
-    const stationName = station.properties.name;
-    const stationIdentifier = station.properties.stationIdentifier;
-
-    const currentConditionsUrl = `${stationId}/observations`;
-    const currentConditionsResponse = await fetchWithRetry(currentConditionsUrl, { headers });
-    if (!currentConditionsResponse.ok) {
-      console.warn(`HTTP error for station ${stationName}! status: ${currentConditionsResponse.status}`);
-      continue;
-    }
-    const currentConditionsData = await currentConditionsResponse.json();
-
-    // Find the first observation with valid temperature and wind speed
-    for (const observation of currentConditionsData.features) {
-      const temperature = observation.properties.temperature.value;
-      const windSpeed = observation.properties.windSpeed.value;
-
-      if (temperature !== null && windSpeed !== null) {
-        const current = {
-          name: stationName,
-          stationIdentifier: stationIdentifier,
-          geometry: observation.geometry,
-          properties: {
-            timestamp: observation.properties.timestamp,
-            temperature: observation.properties.temperature,
-            windSpeed: observation.properties.windSpeed,
-            windDirection: observation.properties.windDirection,
-            windGust: observation.properties.windGust,
-          },
-        };
-
-        return {
-          current,
-          historical: currentConditionsData, // Return the full observations data as historical
-        };
-      }
+    const stationData = await fetchStationData(station);
+    if (stationData) {
+      return [stationData];
     }
   }
 
   throw new Error('No valid observation found with temperature and wind speed after trying up to 10 stations');
+};
+
+const fetchStationData = async (station: any): Promise<StationData | null> => {
+  const stationId = station.id;
+  const stationName = station.properties.name;
+  const stationIdentifier = station.properties.stationIdentifier;
+
+  const currentConditionsUrl = `${stationId}/observations`;
+  const currentConditionsResponse = await fetchWithRetry(currentConditionsUrl, { headers });
+  if (!currentConditionsResponse.ok) {
+    console.warn(`HTTP error for station ${stationName}! status: ${currentConditionsResponse.status}`);
+    return null;
+  }
+  const currentConditionsData = await currentConditionsResponse.json();
+
+  // Find the first observation with valid temperature and wind speed
+  for (const observation of currentConditionsData.features) {
+    const temperature = observation.properties.temperature.value;
+    const windSpeed = observation.properties.windSpeed.value;
+
+    if (temperature !== null && windSpeed !== null) {
+      const current = {
+        name: stationName,
+        stationIdentifier: stationIdentifier,
+        geometry: observation.geometry,
+        properties: {
+          timestamp: observation.properties.timestamp,
+          temperature: observation.properties.temperature,
+          windSpeed: observation.properties.windSpeed,
+          windDirection: observation.properties.windDirection,
+          windGust: observation.properties.windGust,
+        },
+      };
+
+      return {
+        current,
+        historical: currentConditionsData,
+      };
+    }
+  }
+  return null;
 };
 
 // Debug helper function

@@ -1,7 +1,7 @@
 import React from 'react';
 import styled from 'styled-components';
 import { WeatherData } from '../APIClients/WeatherGovTypes';
-import { convertTemperature, convertWindSpeed, getWindDirection, getWindArrow } from '../utils';
+import { convertTemperature, convertWindSpeed, getWindDirection, getWindArrow, calculateDistance, getDirection, formatTimeAgo } from '../utils';
 
 const CurrentConditionsContainer = styled.div`
   background-color: ${(props) => props.theme.colors.backgroundLight};
@@ -11,10 +11,24 @@ const CurrentConditionsContainer = styled.div`
   flex-direction: column;
 `;
 
+const StationsContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-top: 20px;
+`;
+
 const Title = styled.h2`
   text-align: center;
   font-size: 12px;
   color: ${(props) => props.theme.colors.text.primary};
+  margin: 0;
+`;
+
+const StationContainer = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 `;
 
 const CurrentConditionsRow = styled.div`
@@ -55,19 +69,26 @@ const WindArrow = styled.span<{ $rotation: number }>`
 `;
 
 const ObservationTime = styled.div`
-  font-size: 2vw; // Responsive font size
+  font-size: 12px;
   color: ${(props) => props.theme.colors.text.secondary};
   text-align: center;
-  white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
   @media (max-width: 768px) {
-    font-size: 3vw; // Slightly larger font on smaller screens
+    font-size: 3vw;
   }
   @media (min-width: 1200px) {
-    font-size: 24px; // Cap the font size for larger screens
+    font-size: 24px;
   }
+`;
+
+const StationDivider = styled.hr`
+  width: 100%;
+  border: none;
+  border-top: 1px solid ${(props) => props.theme.colors.text.secondary};
+  opacity: 0.2;
+  margin: 0;
 `;
 
 interface CurrentConditionsProps {
@@ -76,70 +97,42 @@ interface CurrentConditionsProps {
   queriedLon: number;
 }
 
-// Haversine formula to calculate distance between two points
-const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
-  const R = 3959; // Radius of the Earth in miles
-  const toRadians = (degrees: number) => degrees * (Math.PI / 180);
-
-  const lat1Rad = toRadians(lat1);
-  const lat2Rad = toRadians(lat2);
-  const deltaLat = toRadians(lat2 - lat1);
-  const deltaLon = toRadians(lon2 - lon1);
-
-  const a = Math.sin(deltaLat / 2) * Math.sin(deltaLat / 2) + Math.cos(lat1Rad) * Math.cos(lat2Rad) * Math.sin(deltaLon / 2) * Math.sin(deltaLon / 2);
-
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-
-  const distance = R * c;
-  return distance;
-};
-
-// Function to determine the direction between two points
-const getDirection = (lat1: number, lon1: number, lat2: number, lon2: number): string => {
-  const dLat = lat2 - lat1;
-  const dLon = lon2 - lon1;
-
-  let direction = '';
-
-  if (Math.abs(dLat) > Math.abs(dLon)) {
-    direction += dLat > 0 ? 'N' : 'S';
-  }
-
-  if (Math.abs(dLon) > Math.abs(dLat)) {
-    direction += dLon > 0 ? 'E' : 'W';
-  }
-
-  if (Math.abs(dLat) > 0 && Math.abs(dLon) > 0) {
-    direction = (dLat > 0 ? 'N' : 'S') + (dLon > 0 ? 'E' : 'W');
-  }
-
-  return direction;
-};
-
 const CurrentConditions: React.FC<CurrentConditionsProps> = ({ weatherData, queriedLat, queriedLon }) => {
-  const [stationLon, stationLat] = weatherData.current.geometry.coordinates;
-  const distance = Math.round(calculateDistance(queriedLat, queriedLon, stationLat, stationLon));
-  const direction = getDirection(queriedLat, queriedLon, stationLat, stationLon);
-
   return (
     <CurrentConditionsContainer>
       <Title>Current Weather Conditions</Title>
-      <CurrentConditionsRow>
-        <ConditionColumn>
-          <LargeValue>{convertTemperature(weatherData.current.properties.temperature.value, weatherData.current.properties.temperature.unitCode).toFixed(1)} °F</LargeValue>
-        </ConditionColumn>
-        <ConditionColumn>
-          <LargeValue>{convertWindSpeed(weatherData.current.properties.windSpeed.value, weatherData.current.properties.windSpeed.unitCode).toFixed(1)} mph</LargeValue>
-          <WindGust>{convertWindSpeed(weatherData.current.properties.windGust.value, weatherData.current.properties.windGust.unitCode).toFixed(1)} mph gust</WindGust>
-          <WindDirection>
-            {getWindDirection(weatherData.current.properties.windDirection.value)}
-            <WindArrow $rotation={weatherData.current.properties.windDirection.value}>{getWindArrow(weatherData.current.properties.windDirection.value).arrow}</WindArrow>
-          </WindDirection>
-        </ConditionColumn>
-      </CurrentConditionsRow>
-      <ObservationTime>
-        Observed {distance} miles {direction} at {weatherData.current.name} {Math.round((new Date().getTime() - new Date(weatherData.current.properties.timestamp).getTime()) / 60000)} minutes ago
-      </ObservationTime>
+      <StationsContainer>
+        {weatherData.stations.map((station, index) => (
+          <React.Fragment key={station.current.stationIdentifier}>
+            {index > 0 && <StationDivider />}
+            <StationContainer>
+              <CurrentConditionsRow>
+                <ConditionColumn>
+                  <LargeValue>{convertTemperature(station.current.properties.temperature.value, station.current.properties.temperature.unitCode).toFixed(1)} °F</LargeValue>
+                </ConditionColumn>
+                <ConditionColumn>
+                  <LargeValue>{convertWindSpeed(station.current.properties.windSpeed.value, station.current.properties.windSpeed.unitCode).toFixed(1)} mph</LargeValue>
+                  <WindGust>{convertWindSpeed(station.current.properties.windGust.value, station.current.properties.windGust.unitCode).toFixed(1)} mph gust</WindGust>
+                  <WindDirection>
+                    {getWindDirection(station.current.properties.windDirection.value)}
+                    <WindArrow $rotation={station.current.properties.windDirection.value}>{getWindArrow(station.current.properties.windDirection.value).arrow}</WindArrow>
+                  </WindDirection>
+                </ConditionColumn>
+              </CurrentConditionsRow>
+              <ObservationTime>
+                {(() => {
+                  const [stationLon, stationLat] = station.current.geometry.coordinates;
+                  const distance = Math.round(calculateDistance(queriedLat, queriedLon, stationLat, stationLon));
+                  const direction = getDirection(queriedLat, queriedLon, stationLat, stationLon);
+                  const timeAgo = formatTimeAgo(station.current.properties.timestamp);
+                  console.log('timestamp=', station.current.properties.timestamp);
+                  return `Observed ${distance} mi ${direction} at ${station.current.name} ${timeAgo}`;
+                })()}
+              </ObservationTime>
+            </StationContainer>
+          </React.Fragment>
+        ))}
+      </StationsContainer>
     </CurrentConditionsContainer>
   );
 };

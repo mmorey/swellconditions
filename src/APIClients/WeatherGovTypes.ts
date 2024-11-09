@@ -95,9 +95,13 @@ export interface SRFData {
   timestamp: string;
 }
 
-export interface WeatherData {
+export interface StationData {
   current: CurrentConditionsAPIResponse;
   historical: HistoricalConditionsAPIResponse;
+}
+
+export interface WeatherData {
+  stations: StationData[];
   forecast: ForecastGridDataAPIResponse;
   city: string;
   state: string;
