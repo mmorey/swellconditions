@@ -5,6 +5,7 @@ import {
   TidesAndCurrentsGovTideHiLoPredictionAPIResponse,
   TidesAndCurrentsGovTideDetailedPredictionAPIResponse,
   WaterLevelData,
+  TideData,
 } from './TidesAndCurrentsGovTypes';
 import { calculateDistance } from '../utils';
 
@@ -38,7 +39,7 @@ const formatDate = (date: Date): string => {
   return formattedDate;
 };
 
-export const fetchWaterTemperatureData = async (stationId: string): Promise<TidesAndCurrentsGovWaterTemperatureAPIResponse> => {
+const fetchWaterTemperatureData = async (stationId: string): Promise<TidesAndCurrentsGovWaterTemperatureAPIResponse> => {
   const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${stationId}&product=water_temperature&datum=MLLW&time_zone=gmt&units=english&format=json&date=recent`;
 
   const response = await fetchWithRetry(url, { headers });
@@ -52,7 +53,7 @@ export const fetchWaterTemperatureData = async (stationId: string): Promise<Tide
   return data;
 };
 
-export const fetchWaterLevelData = async (stationId: string): Promise<TidesAndCurrentsGovWaterLevelAPIResponse> => {
+const fetchWaterLevelData = async (stationId: string): Promise<TidesAndCurrentsGovWaterLevelAPIResponse> => {
   const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?station=${stationId}&product=water_level&datum=MLLW&time_zone=gmt&units=english&format=json&application=GoingOff&date=latest&range=48`;
 
   const response = await fetchWithRetry(url, { headers });
@@ -66,7 +67,7 @@ export const fetchWaterLevelData = async (stationId: string): Promise<TidesAndCu
   return data;
 };
 
-export const fetchTideHiLoPredictions = async (stationId: string): Promise<TidesAndCurrentsGovTideHiLoPredictionAPIResponse> => {
+const fetchTideHiLoPredictions = async (stationId: string): Promise<TidesAndCurrentsGovTideHiLoPredictionAPIResponse> => {
   const formattedDate = formatDate(new Date());
   const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${formattedDate}&station=${stationId}&product=predictions&interval=hilo&datum=MLLW&time_zone=gmt&units=english&format=json&range=48`;
 
@@ -81,7 +82,7 @@ export const fetchTideHiLoPredictions = async (stationId: string): Promise<Tides
   return data;
 };
 
-export const fetchDetailedTidePredictions = async (stationId: string): Promise<TidesAndCurrentsGovTideDetailedPredictionAPIResponse> => {
+const fetchDetailedTidePredictions = async (stationId: string): Promise<TidesAndCurrentsGovTideDetailedPredictionAPIResponse> => {
   const formattedDate = formatDate(new Date());
   const url = `https://api.tidesandcurrents.noaa.gov/api/prod/datagetter?begin_date=${formattedDate}&station=${stationId}&product=predictions&interval=15&datum=MLLW&time_zone=gmt&units=english&format=json&range=48`;
 
@@ -96,7 +97,7 @@ export const fetchDetailedTidePredictions = async (stationId: string): Promise<T
   return data;
 };
 
-export const fetchWaterLevel = async (stationId: string): Promise<WaterLevelData> => {
+const fetchWaterLevel = async (stationId: string): Promise<WaterLevelData> => {
   const waterLevelData = await fetchWaterLevelData(stationId);
   const tideHiLoPredictionData = await fetchTideHiLoPredictions(stationId);
   const tideDetailedPredicitonData = await fetchDetailedTidePredictions(stationId);
@@ -105,7 +106,7 @@ export const fetchWaterLevel = async (stationId: string): Promise<WaterLevelData
   return data;
 };
 
-export const fetchTideStations = async (): Promise<TideStation[]> => {
+const fetchTideStations = async (): Promise<TideStation[]> => {
   const url = 'https://api.tidesandcurrents.noaa.gov/mdapi/prod/webapi/stations.json?type=waterlevels&expand=details';
 
   const response = await fetchWithRetry(url, { headers });
@@ -123,7 +124,7 @@ export const fetchTideStations = async (): Promise<TideStation[]> => {
   }));
 };
 
-export const findClosestTideStation = async (latitude: number, longitude: number): Promise<string> => {
+const findClosestTideStation = async (latitude: number, longitude: number): Promise<string> => {
   const tideStations = await fetchTideStations();
   const closestStation = tideStations.reduce((closest: TideStation | null, station: TideStation) => {
     const distance = calculateDistance(latitude, longitude, station.lat, station.lng);
@@ -138,4 +139,15 @@ export const findClosestTideStation = async (latitude: number, longitude: number
   } else {
     throw new Error('No tide stations found');
   }
+};
+
+export const fetchTideData = async (latitude: number, longitude: number, stationId?: string): Promise<TideData> => {
+  const selectedStationId = stationId || (await findClosestTideStation(latitude, longitude));
+  const [waterTemp, waterLevelData] = await Promise.all([fetchWaterTemperatureData(selectedStationId), fetchWaterLevel(selectedStationId)]);
+
+  return {
+    stationId: selectedStationId,
+    waterTemperature: waterTemp,
+    waterLevel: waterLevelData,
+  };
 };

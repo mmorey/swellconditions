@@ -6,7 +6,7 @@ import { CDIPStation as CDIPStationType } from './APIClients/CDIPTypes';
 import { NDBCStation } from './APIClients/NDBCTypes';
 import WindGraph from './components/WindGraph';
 import { fetchWeatherData, getDebugCSVContent } from './APIClients/WeatherGovAPI';
-import { fetchWaterTemperatureData, findClosestTideStation, fetchWaterLevel } from './APIClients/TidesAndCurrentsGovAPI';
+import { fetchTideData } from './APIClients/TidesAndCurrentsGovAPI';
 import { TidesAndCurrentsGovWaterTemperatureAPIResponse, WaterLevelData } from './APIClients/TidesAndCurrentsGovTypes';
 import { fetchSpecificStations } from './APIClients/CDIPAPI';
 import { getClosestStations, fetchSpecificNDBCStations } from './APIClients/NDBCAPI';
@@ -147,14 +147,7 @@ const AppContent: React.FC = () => {
       try {
         const weatherPromise = fetchWeatherData(latitude, longitude, nwsstation);
 
-        let selectedTideStation = tideStation;
-        if (!selectedTideStation) {
-          selectedTideStation = await findClosestTideStation(latitude, longitude);
-          setTideStation(selectedTideStation);
-        }
-
-        const waterTempPromise = fetchWaterTemperatureData(selectedTideStation);
-        const waterLevelPromise = fetchWaterLevel(selectedTideStation);
+        const tideDataPromise = fetchTideData(latitude, longitude, tideStation || undefined);
 
         // Only fetch CDIP stations if cdipParam exists
         const cdipStationsPromise = cdipParam
@@ -163,17 +156,12 @@ const AppContent: React.FC = () => {
 
         const ndbcStationsPromise = ndbcParam ? fetchSpecificNDBCStations(ndbcParam.split(','), latitude, longitude) : getClosestStations(latitude, longitude);
 
-        const [weatherResult, waterTempResult, waterLevelResult, cdipStationsResult, ndbcStationsResult] = await Promise.all([
-          weatherPromise,
-          waterTempPromise,
-          waterLevelPromise,
-          cdipStationsPromise,
-          ndbcStationsPromise,
-        ]);
+        const [weatherResult, tideData, cdipStationsResult, ndbcStationsResult] = await Promise.all([weatherPromise, tideDataPromise, cdipStationsPromise, ndbcStationsPromise]);
 
         setWeatherData(weatherResult);
-        setWaterTempData(waterTempResult);
-        setWaterLevelData(waterLevelResult);
+        setTideStation(tideData.stationId);
+        setWaterTempData(tideData.waterTemperature);
+        setWaterLevelData(tideData.waterLevel);
         setCdipStations(cdipStationsResult);
         setNdbcStations(ndbcStationsResult);
       } catch (e) {

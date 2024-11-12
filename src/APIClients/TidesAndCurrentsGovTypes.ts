@@ -66,3 +66,9 @@ export interface WaterLevelData {
   tideHiLoPrediction: TidesAndCurrentsGovTideHiLoPredictionAPIResponse;
   tideDetailedPrediction: TidesAndCurrentsGovTideDetailedPredictionAPIResponse;
 }
+
+export interface TideData {
+  stationId: string;
+  waterTemperature: TidesAndCurrentsGovWaterTemperatureAPIResponse;
+  waterLevel: WaterLevelData;
+}
