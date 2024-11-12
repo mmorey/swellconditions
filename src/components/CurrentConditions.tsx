@@ -20,7 +20,7 @@ const StationsContainer = styled.div`
 
 const Title = styled.h2`
   text-align: center;
-  font-size: 12px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   color: ${(props) => props.theme.colors.text.primary};
   margin: 0;
 `;
@@ -46,17 +46,17 @@ const ConditionColumn = styled.div`
 `;
 
 const LargeValue = styled.div`
-  font-size: 24px;
+  font-size: ${(props) => props.theme.fonts.primary.size};
   font-weight: bold;
 `;
 
 const WindGust = styled.div`
-  font-size: 14px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   margin-top: 5px;
 `;
 
 const WindDirection = styled.div`
-  font-size: 14px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   margin-top: 5px;
   display: flex;
   align-items: center;
@@ -69,18 +69,13 @@ const WindArrow = styled.span<{ $rotation: number }>`
 `;
 
 const ObservationTime = styled.div`
-  font-size: 12px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   color: ${(props) => props.theme.colors.text.secondary};
   text-align: center;
   overflow: hidden;
   text-overflow: ellipsis;
   width: 100%;
-  @media (max-width: 768px) {
-    font-size: 3vw;
-  }
-  @media (min-width: 1200px) {
-    font-size: 24px;
-  }
+  font-size: ${(props) => props.theme.fonts.secondary.size};
 `;
 
 const StationDivider = styled.hr`
@@ -125,8 +120,8 @@ const CurrentConditions: React.FC<CurrentConditionsProps> = ({ weatherData, quer
                   const distance = Math.round(calculateDistance(queriedLat, queriedLon, stationLat, stationLon));
                   const direction = getDirection(queriedLat, queriedLon, stationLat, stationLon);
                   const timeAgo = formatTimeAgo(station.current.properties.timestamp);
-                  console.log('timestamp=', station.current.properties.timestamp);
-                  return `Observed ${distance} mi ${direction} at ${station.current.name} ${timeAgo}`;
+                  const stationName = station.current.name.length > 20 ? station.current.name.substring(0, 20).trim() + '...' : station.current.name;
+                  return `Observed ${distance} mi ${direction} at ${stationName} ${timeAgo}`;
                 })()}
               </ObservationTime>
             </StationContainer>

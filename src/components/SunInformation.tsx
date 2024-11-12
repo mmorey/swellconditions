@@ -12,7 +12,7 @@ const SunInformationContainer = styled.div`
 
 const Title = styled.h2`
   text-align: center;
-  font-size: 12px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   color: ${(props) => props.theme.colors.text.primary};
 `;
 
@@ -41,18 +41,18 @@ const SunTimeGroup = styled.div`
 `;
 
 const SunTime = styled.div`
-  font-size: 18px;
+  font-size: ${(props) => props.theme.fonts.primary.size};
   font-weight: bold;
   margin-top: 5px;
 `;
 
 const SunLabel = styled.div`
-  font-size: 14px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   color: ${(props) => props.theme.colors.text.secondary};
 `;
 
 const CoordinateText = styled.div`
-  font-size: 12px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   color: ${(props) => props.theme.colors.text.secondary};
   text-align: center;
   margin-top: 10px;

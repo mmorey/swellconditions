@@ -19,6 +19,14 @@ const theme = {
       secondary: 'rgb(53, 162, 235, 0.3)',
     },
   },
+  fonts: {
+    primary: {
+      size: '18px',
+    },
+    secondary: {
+      size: '12px',
+    },
+  },
 };
 
 const GlobalStyle = createGlobalStyle`
