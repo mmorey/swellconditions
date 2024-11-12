@@ -21,7 +21,7 @@ const TopRow = styled.div`
 `;
 const Title = styled.h2`
   text-align: center;
-  font-size: 12px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   color: ${(props) => props.theme.colors.text.primary};
 `;
 
@@ -45,31 +45,22 @@ const DataColumn = styled.div`
 `;
 
 const LargeValue = styled.div`
-  font-size: 18px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   font-weight: bold;
   margin-top: 5px;
 `;
 
 const Label = styled.div`
-  font-size: 14px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   text-align: center;
   color: ${(props) => props.theme.colors.text.secondary};
 `;
 
 const StationInfo = styled.div`
-  font-size: 2vw;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   color: ${(props) => props.theme.colors.text.secondary};
   text-align: center;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   width: 100%;
-  @media (max-width: 768px) {
-    font-size: 2vw;
-  }
-  @media (min-width: 1200px) {
-    font-size: 24px;
-  }
 `;
 
 const DirectionArrow = styled.span<{ $rotation: number }>`
@@ -81,7 +72,6 @@ const DirectionArrow = styled.span<{ $rotation: number }>`
 const SwellComponentsContainer = styled.div`
   display: flex;
   flex-direction: column;
-
   background-color: ${(props) => props.theme.colors.backgroundLight};
 `;
 
@@ -97,7 +87,7 @@ const SwellComponentRow = styled.div`
 `;
 
 const SwellTitle = styled.div`
-  font-size: 12px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   font-weight: bold;
   text-align: center;
   color: ${(props) => props.theme.colors.text.primary};
@@ -105,7 +95,7 @@ const SwellTitle = styled.div`
 
 const SwellValue = styled.div`
   text-align: center;
-  font-size: 12px;
+  font-size: ${(props) => props.theme.fonts.secondary.size};
   font-weight: bold;
 `;
 
@@ -154,27 +144,26 @@ const NDBCStationComponent: React.FC<NDBCStationProps> = ({ station }) => {
           </DataColumnsWrapper>
         </StationRow>
       </TopRow>
-
       {station.spectralWaveData?.swellComponents && station.spectralWaveData.swellComponents.length > 0 && (
         <SwellComponentsContainer>
           <SwellTitle>Individual Swell Components</SwellTitle>
-          {station.spectralWaveData.swellComponents.map((component, index) => {
-            const heightFeet = component.waveHeight * 3.28084;
-            return (
-              <SwellComponentRow key={index}>
-                {/* <SwellValue>{(component.maxEnergyJoules / 1000).toFixed(2)} kJ</SwellValue> */}
-                <SwellValue>{heightFeet.toFixed(1)} ft</SwellValue>
-                <SwellValue>{component.period.toFixed(1)} s</SwellValue>
-                <SwellValue>
-                  {component.direction}° {component.compassDirection}
-                  <DirectionArrow $rotation={component.direction}>{getWindArrow(component.direction).arrow}</DirectionArrow>
-                </SwellValue>
-              </SwellComponentRow>
-            );
-          })}
+          {[...station.spectralWaveData.swellComponents]
+            .sort((a, b) => b.period - a.period)
+            .map((component, index) => {
+              const heightFeet = component.waveHeight * 3.28084;
+              return (
+                <SwellComponentRow key={index}>
+                  <SwellValue>{heightFeet.toFixed(1)} ft</SwellValue>
+                  <SwellValue>{component.period.toFixed(1)} s</SwellValue>
+                  <SwellValue>
+                    {component.direction}° {component.compassDirection}
+                    <DirectionArrow $rotation={component.direction}>{getWindArrow(component.direction).arrow}</DirectionArrow>
+                  </SwellValue>
+                </SwellComponentRow>
+              );
+            })}
         </SwellComponentsContainer>
       )}
-
       <SpectralWaveGraph station={station} />
       {/* <SpectralDirectionalRose station={station} />
       <PolarSpectrum station={station} /> */}

@@ -101,6 +101,15 @@ const ErrorInfo = styled.div`
   text-align: center;
 `;
 
+const LoadingInfo = styled.div`
+  margin: 5px;
+  padding: 8px;
+  background-color: ${(props) => props.theme.colors.backgroundLight};
+  border-radius: 5px;
+  font-size: 14px;
+  text-align: center;
+`;
+
 const PlaceholderContainer = styled.div`
   background-color: ${(props) => props.theme.colors.backgroundLight};
   padding: 15px;
@@ -136,38 +145,75 @@ const AppContent: React.FC = () => {
   const [waterLevelData, setWaterLevelData] = useState<WaterLevelData | null>(null);
   const [cdipStations, setCdipStations] = useState<CDIPStationType[]>([]);
   const [ndbcStations, setNdbcStations] = useState<NDBCStation[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  // Separate loading states
+  const [weatherLoading, setWeatherLoading] = useState(false);
+  const [tidesLoading, setTidesLoading] = useState(false);
+  const [cdipLoading, setCdipLoading] = useState(false);
+  const [ndbcLoading, setNdbcLoading] = useState(false);
+
+  // Separate error states
+  const [weatherError, setWeatherError] = useState<string | null>(null);
+  const [tidesError, setTidesError] = useState<string | null>(null);
+  const [cdipError, setCdipError] = useState<string | null>(null);
+  const [ndbcError, setNdbcError] = useState<string | null>(null);
+
   const [csvDataUrl, setCsvDataUrl] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
-      setLoading(true);
-      setError(null);
+      // Reset errors
+      setWeatherError(null);
+      setTidesError(null);
+      setCdipError(null);
+      setNdbcError(null);
+
+      // Weather data
+      setWeatherLoading(true);
       try {
-        const weatherPromise = fetchWeatherData(latitude, longitude, nwsstation);
-
-        const tideDataPromise = fetchTideData(latitude, longitude, tideStation || undefined);
-
-        // Only fetch CDIP stations if cdipParam exists
-        const cdipStationsPromise = cdipParam
-          ? fetchSpecificStations(cdipParam.split(',')) // This will work for both single station and comma-separated lists
-          : Promise.resolve([]);
-
-        const ndbcStationsPromise = ndbcParam ? fetchSpecificNDBCStations(ndbcParam.split(','), latitude, longitude) : getClosestStations(latitude, longitude);
-
-        const [weatherResult, tideData, cdipStationsResult, ndbcStationsResult] = await Promise.all([weatherPromise, tideDataPromise, cdipStationsPromise, ndbcStationsPromise]);
-
+        const weatherResult = await fetchWeatherData(latitude, longitude, nwsstation);
         setWeatherData(weatherResult);
+      } catch (e) {
+        setWeatherError(`Failed to fetch weather data: ${e instanceof Error ? e.message : String(e)}`);
+      } finally {
+        setWeatherLoading(false);
+      }
+
+      // Tide data
+      setTidesLoading(true);
+      try {
+        const tideData = await fetchTideData(latitude, longitude, tideStation || undefined);
         setTideStation(tideData.stationId);
         setWaterTempData(tideData.waterTemperature);
         setWaterLevelData(tideData.waterLevel);
-        setCdipStations(cdipStationsResult);
+      } catch (e) {
+        setTidesError(`Failed to fetch tide data: ${e instanceof Error ? e.message : String(e)}`);
+      } finally {
+        setTidesLoading(false);
+      }
+
+      // CDIP stations
+      if (cdipParam) {
+        setCdipLoading(true);
+        try {
+          const cdipStationsResult = await fetchSpecificStations(cdipParam.split(','));
+          setCdipStations(cdipStationsResult);
+        } catch (e) {
+          setCdipError(`Failed to fetch CDIP stations: ${e instanceof Error ? e.message : String(e)}`);
+        } finally {
+          setCdipLoading(false);
+        }
+      }
+
+      // NDBC stations
+      setNdbcLoading(true);
+      try {
+        const ndbcStationsResult = ndbcParam ? await fetchSpecificNDBCStations(ndbcParam.split(','), latitude, longitude) : await getClosestStations(latitude, longitude);
         setNdbcStations(ndbcStationsResult);
       } catch (e) {
-        setError(`Failed to fetch data: ${e instanceof Error ? e.message : String(e)}`);
+        setNdbcError(`Failed to fetch NDBC stations: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
-        setLoading(false);
+        setNdbcLoading(false);
       }
     };
 
@@ -210,42 +256,59 @@ const AppContent: React.FC = () => {
           {weatherData ? `${weatherData.city}, ${weatherData.state}` : 'Loading...'} {coordinates}
         </LocationInfo>
       </HeaderContainer>
+
+      {/* Loading and error states */}
+      {weatherLoading && <LoadingInfo>Loading Weather...</LoadingInfo>}
+      {weatherError && <ErrorInfo>{weatherError}</ErrorInfo>}
+
+      {tidesLoading && <LoadingInfo>Loading Tides...</LoadingInfo>}
+      {tidesError && <ErrorInfo>{tidesError}</ErrorInfo>}
+
+      {cdipLoading && <LoadingInfo>Loading CDIP Stations...</LoadingInfo>}
+      {cdipError && <ErrorInfo>{cdipError}</ErrorInfo>}
+
+      {ndbcLoading && <LoadingInfo>Loading NDBC Stations...</LoadingInfo>}
+      {ndbcError && <ErrorInfo>{ndbcError}</ErrorInfo>}
+
       {videoUrl && <VideoPlayer playlistUrl={videoUrl} rotationInterval={rotationInterval ? parseInt(rotationInterval) : undefined} />}
+
+      {/* NDBC stations */}
+      {!ndbcLoading && !ndbcError && ndbcStationsToDisplay.map((station) => <NDBCStationComponent key={station.id} station={station} />)}
+
+      {/* Additional components */}
+      <CDIPClassicSwellModel latitude={latitude} longitude={longitude} />
+      <CDIPClassicSwellModelLocal latitude={latitude} longitude={longitude} />
+
       <SunInformation latitude={latitude} longitude={longitude} />
-      {loading && <PlaceholderContainer>Loading data...</PlaceholderContainer>}
-      {error && <ErrorInfo>{error}</ErrorInfo>}
-      {!loading && !error && weatherData && waterTempData ? (
+
+      {/* Weather-dependent components */}
+      {!weatherLoading && !weatherError && weatherData && (
         <>
           <CurrentConditions weatherData={weatherData} queriedLat={latitude} queriedLon={longitude} />
           <WindGraph weatherData={weatherData} />
-          {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
-          <WaterTemperatureGraph waterTemperatureData={waterTempData} />
           {weatherData.afd && <AFD afd={weatherData.afd.text} wfo={weatherData.cwa} timestamp={weatherData.afd.timestamp} />}
           {weatherData.srf && <SRF srf={weatherData.srf.text} wfo={weatherData.cwa} timestamp={weatherData.srf.timestamp} simpleFormat={true} />}
-          {stationsToDisplay.map(({ station, distance, direction }) => (
-            <CDIPStation key={station.station_number} station={station} distance={distance} direction={direction} />
-          ))}
-          {ndbcStationsToDisplay.map((station) => (
-            <NDBCStationComponent key={station.id} station={station} />
-          ))}
-
-          <CDIPClassicSwellModel latitude={latitude} longitude={longitude} />
-          <CDIPClassicSwellModelLocal latitude={latitude} longitude={longitude} />
-          {DEBUG_MODE && csvDataUrl && (
-            <DownloadLink href={csvDataUrl} download="weather_data.csv">
-              Download Debug CSV
-            </DownloadLink>
-          )}
           <SatelliteViewer weatherOfficeCode={weatherData.cwa} />
         </>
-      ) : (
+      )}
+
+      {/* Tide-dependent components */}
+      {!tidesLoading && !tidesError && waterTempData && (
         <>
-          <PlaceholderContainer>Current conditions unavailable</PlaceholderContainer>
-          {cdipParam && <PlaceholderContainer>CDIP stations unavailable</PlaceholderContainer>}
-          <PlaceholderContainer>Wind graph unavailable</PlaceholderContainer>
-          <PlaceholderContainer>Tide graph unavailable</PlaceholderContainer>
-          <PlaceholderContainer>Water temperature graph unavailable</PlaceholderContainer>
+          {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
+          <WaterTemperatureGraph waterTemperatureData={waterTempData} />
         </>
+      )}
+
+      {/* CDIP stations */}
+      {!cdipLoading &&
+        !cdipError &&
+        stationsToDisplay.map(({ station, distance, direction }) => <CDIPStation key={station.station_number} station={station} distance={distance} direction={direction} />)}
+
+      {DEBUG_MODE && csvDataUrl && (
+        <DownloadLink href={csvDataUrl} download="weather_data.csv">
+          Download Debug CSV
+        </DownloadLink>
       )}
     </AppContainer>
   );
