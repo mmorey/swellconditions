@@ -110,14 +110,6 @@ const LoadingInfo = styled.div`
   text-align: center;
 `;
 
-const PlaceholderContainer = styled.div`
-  background-color: ${(props) => props.theme.colors.backgroundLight};
-  padding: 15px;
-  width: 85%;
-  border-radius: 10px;
-  text-align: center;
-`;
-
 const DownloadLink = styled.a`
   display: block;
   text-align: center;
@@ -275,9 +267,17 @@ const AppContent: React.FC = () => {
       {/* NDBC stations */}
       {!ndbcLoading && !ndbcError && ndbcStationsToDisplay.map((station) => <NDBCStationComponent key={station.id} station={station} />)}
 
-      {/* Additional components */}
+      {/* CDIP Model Image components */}
       <CDIPClassicSwellModel latitude={latitude} longitude={longitude} />
       <CDIPClassicSwellModelLocal latitude={latitude} longitude={longitude} />
+
+      {/* Tide-dependent components */}
+      {!tidesLoading && !tidesError && waterTempData && (
+        <>
+          {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
+          <WaterTemperatureGraph waterTemperatureData={waterTempData} />
+        </>
+      )}
 
       <SunInformation latitude={latitude} longitude={longitude} />
 
@@ -289,14 +289,6 @@ const AppContent: React.FC = () => {
           {weatherData.afd && <AFD afd={weatherData.afd.text} wfo={weatherData.cwa} timestamp={weatherData.afd.timestamp} />}
           {weatherData.srf && <SRF srf={weatherData.srf.text} wfo={weatherData.cwa} timestamp={weatherData.srf.timestamp} simpleFormat={true} />}
           <SatelliteViewer weatherOfficeCode={weatherData.cwa} />
-        </>
-      )}
-
-      {/* Tide-dependent components */}
-      {!tidesLoading && !tidesError && waterTempData && (
-        <>
-          {waterLevelData && <TideGraph waterLevelData={waterLevelData} />}
-          <WaterTemperatureGraph waterTemperatureData={waterTempData} />
         </>
       )}
 
