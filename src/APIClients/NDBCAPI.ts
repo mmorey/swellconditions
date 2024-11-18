@@ -214,8 +214,14 @@ export async function getClosestStations(latitude: number, longitude: number): P
     direction: getDirection(latitude, longitude, station.lat, station.lon),
   }));
 
-  // Sort by distance and return top 3
-  return stationsWithDistanceAndDirection.sort((a, b) => a.distance - b.distance).slice(0, 3);
+  // Sort by distance and get top 3 stations
+  const closestStations = stationsWithDistanceAndDirection.sort((a, b) => a.distance - b.distance).slice(0, 3);
+
+  // Get station IDs for the closest stations
+  const stationIds = closestStations.map((station) => station.id);
+
+  // Fetch the stations with spectral data
+  return fetchSpecificNDBCStations(stationIds, latitude, longitude);
 }
 
 export async function fetchSpecificNDBCStations(stationNumbers: string[], latitude: number, longitude: number): Promise<NDBCStation[]> {

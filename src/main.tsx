@@ -18,6 +18,9 @@ const theme = {
       primary: 'rgb(53, 162, 235)',
       secondary: 'rgb(53, 162, 235, 0.3)',
     },
+    link: {
+      primary: 'rgb(53, 162, 235)',
+    },
   },
   fonts: {
     primary: {

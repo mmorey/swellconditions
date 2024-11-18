@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import styled from 'styled-components';
-import { BrowserRouter, useSearchParams } from 'react-router-dom';
+import { BrowserRouter, useSearchParams, useNavigate } from 'react-router-dom';
 import { WeatherData } from './APIClients/WeatherGovTypes';
 import { CDIPStation as CDIPStationType } from './APIClients/CDIPTypes';
 import { NDBCStation } from './APIClients/NDBCTypes';
@@ -23,6 +23,7 @@ import SatelliteViewer from './components/SatelliteViewer';
 import AFD from './components/AFD';
 import SRF from './components/SRF';
 import VideoPlayer from './components/VideoPlayer';
+import LocationInput from './components/LocationInput';
 
 // Debug flag
 const DEBUG_MODE = false;
@@ -122,9 +123,18 @@ const DownloadLink = styled.a`
 
 const AppContent: React.FC = () => {
   const [searchParams] = useSearchParams();
-  const latitude = parseFloat(searchParams.get('lat') || '37.7749');
-  const longitude = parseFloat(searchParams.get('lon') || '-122.4194');
-  const coordinates = `(${latitude}, ${longitude})`;
+  const navigate = useNavigate();
+  const urlLat = searchParams.get('lat');
+  const urlLon = searchParams.get('lon');
+
+  const [manualLat, setManualLat] = useState('');
+  const [manualLon, setManualLon] = useState('');
+  const [locationError, setLocationError] = useState<string | null>(null);
+  const [isGettingLocation, setIsGettingLocation] = useState(false);
+
+  const latitude = urlLat ? parseFloat(urlLat) : null;
+  const longitude = urlLon ? parseFloat(urlLon) : null;
+
   const nwsstation = searchParams.get('nwsstation');
   const cdipParam = searchParams.get('cdip');
   const ndbcParam = searchParams.get('ndbc');
@@ -138,13 +148,11 @@ const AppContent: React.FC = () => {
   const [cdipStations, setCdipStations] = useState<CDIPStationType[]>([]);
   const [ndbcStations, setNdbcStations] = useState<NDBCStation[]>([]);
 
-  // Separate loading states
   const [weatherLoading, setWeatherLoading] = useState(false);
   const [tidesLoading, setTidesLoading] = useState(false);
   const [cdipLoading, setCdipLoading] = useState(false);
   const [ndbcLoading, setNdbcLoading] = useState(false);
 
-  // Separate error states
   const [weatherError, setWeatherError] = useState<string | null>(null);
   const [tidesError, setTidesError] = useState<string | null>(null);
   const [cdipError, setCdipError] = useState<string | null>(null);
@@ -152,8 +160,49 @@ const AppContent: React.FC = () => {
 
   const [csvDataUrl, setCsvDataUrl] = useState<string | null>(null);
 
+  const handleUseLocation = () => {
+    setIsGettingLocation(true);
+    setLocationError(null);
+
+    if (!navigator.geolocation) {
+      setLocationError('Geolocation is not supported by your browser');
+      setIsGettingLocation(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const lat = position.coords.latitude.toFixed(4);
+        const lon = position.coords.longitude.toFixed(4);
+        navigate(`?lat=${lat}&lon=${lon}`);
+        setIsGettingLocation(false);
+      },
+      (error) => {
+        setLocationError(`Error getting location: ${error.message}`);
+        setIsGettingLocation(false);
+      }
+    );
+  };
+
+  const handleSubmitCoordinates = () => {
+    // Clear any previous error first
+    setLocationError(null);
+
+    const lat = parseFloat(manualLat);
+    const lon = parseFloat(manualLon);
+
+    if (isNaN(lat) || isNaN(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+      setLocationError('Please enter valid coordinates (latitude: -90 to 90, longitude: -180 to 180)');
+      return;
+    }
+
+    navigate(`?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`);
+  };
+
   useEffect(() => {
     const fetchData = async () => {
+      if (!latitude || !longitude) return;
+
       // Reset errors
       setWeatherError(null);
       setTidesError(null);
@@ -227,12 +276,39 @@ const AppContent: React.FC = () => {
     cdipParam && cdipStations.length > 0
       ? cdipStations.map((station) => ({
           station,
-          distance: calculateDistance(latitude, longitude, station.latitude, station.longitude),
-          direction: getDirection(latitude, longitude, station.latitude, station.longitude),
+          distance: calculateDistance(latitude || 0, longitude || 0, station.latitude, station.longitude),
+          direction: getDirection(latitude || 0, longitude || 0, station.latitude, station.longitude),
         }))
       : [];
 
   const ndbcStationsToDisplay = ndbcStations;
+
+  if (!latitude || !longitude) {
+    return (
+      <AppContainer>
+        <HeaderContainer>
+          <TitleContainer>
+            <TitleGroup>
+              <Logo src="/logo.svg" alt="Swell Conditions Logo" />
+              <MainTitle>Swell Conditions</MainTitle>
+            </TitleGroup>
+            <SettingsIcon src="/settings.svg" alt="Settings" />
+          </TitleContainer>
+        </HeaderContainer>
+
+        <LocationInput
+          manualLat={manualLat}
+          manualLon={manualLon}
+          locationError={locationError}
+          isGettingLocation={isGettingLocation}
+          onLatChange={setManualLat}
+          onLonChange={setManualLon}
+          onSubmitCoordinates={handleSubmitCoordinates}
+          onUseLocation={handleUseLocation}
+        />
+      </AppContainer>
+    );
+  }
 
   return (
     <AppContainer>
@@ -245,7 +321,7 @@ const AppContent: React.FC = () => {
           <SettingsIcon src="/settings.svg" alt="Settings" />
         </TitleContainer>
         <LocationInfo>
-          {weatherData ? `${weatherData.city}, ${weatherData.state}` : 'Loading...'} {coordinates}
+          {weatherData ? `${weatherData.city}, ${weatherData.state}` : 'Loading...'} ({latitude}, {longitude})
         </LocationInfo>
       </HeaderContainer>
 
