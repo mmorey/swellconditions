@@ -69,6 +69,21 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
     const startTime = subHours(currentHour, 6); // Changed from 3 to 6 hours
     const endTime = addHours(currentHour, 18); // Changed to 18 hours from current time
 
+    // Ensure waterTemperatureData and its data property exist
+    if (!waterTemperatureData?.data || !Array.isArray(waterTemperatureData.data)) {
+      return {
+        times: [],
+        temperatures: [],
+        predictedTimes: [],
+        predictedTemperatures: [],
+        stationName: '',
+        stationID: '',
+        yAxisScale: { min: 0, max: 100 },
+        now,
+        latestTemperature: 0,
+      };
+    }
+
     // Get all historical data
     const allData = waterTemperatureData.data;
     const allTemps = allData.map((item) => parseFloat(item.v));
@@ -147,8 +162,8 @@ const WaterTemperatureGraph: React.FC<WaterTemperatureGraphProps> = ({ waterTemp
       temperatures: sortedTemps,
       predictedTimes: futureTimes,
       predictedTemperatures: predictedTemps,
-      stationName: waterTemperatureData.metadata.name,
-      stationID: waterTemperatureData.metadata.id,
+      stationName: waterTemperatureData.metadata?.name || '',
+      stationID: waterTemperatureData.metadata?.id || '',
       yAxisScale: {
         min: Math.floor(minTemp - padding),
         max: Math.ceil(maxTemp + padding),

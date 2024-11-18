@@ -23,7 +23,7 @@ const CDIPClassicSwellModelLocal: React.FC<CDIPClassicSwellModelLocalProps> = ({
   const isInSanDiegoCounty = (lat: number, lon: number): boolean => {
     return (
       lat >= 32.5 && // Mexican border
-      lat <= 33.5 && // Camp Pendleton
+      lat <= 33.3 && // Camp Pendleton // Lower Trestles: 33.382040, -117.588630
       lon >= -117.6 && // Coast
       lon <= -116.1 // Eastern border
     );
@@ -31,7 +31,7 @@ const CDIPClassicSwellModelLocal: React.FC<CDIPClassicSwellModelLocalProps> = ({
 
   const isInOrangeCounty = (lat: number, lon: number): boolean => {
     return (
-      lat >= 33.5 && // South border
+      lat > 33.3 && // South border
       lat <= 33.95 && // North border
       lon >= -118.0 && // Coast
       lon <= -117.4 // Eastern border
