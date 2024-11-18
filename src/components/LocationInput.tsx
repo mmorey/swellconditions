@@ -93,7 +93,7 @@ const LocationInput: React.FC<LocationInputProps> = ({ manualLat, manualLon, loc
     { name: 'Pipeline', lat: 21.6654, lon: -158.0521, ndbc: ['51001', '51208', '51201'] },
   ];
 
-  const handleLocationSelect = (lat: number, lon: number, name: string, ndbc?: string[]) => {
+  const handleLocationSelect = (lat: number, lon: number, ndbc?: string[]) => {
     if (ndbc) {
       // comma separated list of NDBC stations
       window.location.href = `?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&ndbc=${ndbc.join(',')}`;
@@ -130,7 +130,7 @@ const LocationInput: React.FC<LocationInputProps> = ({ manualLat, manualLon, loc
         <p>Or here are some popular locations:</p>
         <LocationsList>
           {popularLocations.map((location) => (
-            <LocationButton key={location.name} onClick={() => handleLocationSelect(location.lat, location.lon, location.name, location.ndbc)}>
+            <LocationButton key={location.name} onClick={() => handleLocationSelect(location.lat, location.lon, location.ndbc)}>
               {location.name}
             </LocationButton>
           ))}
