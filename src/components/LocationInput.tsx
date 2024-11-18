@@ -86,14 +86,20 @@ interface LocationInputProps {
 
 const LocationInput: React.FC<LocationInputProps> = ({ manualLat, manualLon, locationError, isGettingLocation, onLatChange, onLonChange, onSubmitCoordinates, onUseLocation }) => {
   const popularLocations = [
-    { name: 'Malibu', lat: 34.0259, lon: -118.7798 },
-    { name: 'Lower Trestles', lat: 33.382, lon: -117.5886 }, //33.382040, -117.588630
-    { name: 'Pipeline', lat: 21.6654, lon: -158.0521 },
+    { name: 'Montauk', lat: 41.0375, lon: -71.9112, ndbc: ['44011', '44097', '44025'] }, // 41.037530, -71.911183
+    { name: 'New Smyrna Beach', lat: 29.071, lon: -80.9089, ndbc: ['41002', '41010', '41070'] }, //29.070984, -80.908929
+    { name: 'Malibu', lat: 34.0259, lon: -118.7798, ndbc: ['46232', '46221', '46268'] },
+    { name: 'Lower Trestles', lat: 33.382, lon: -117.5886, ndbc: ['46232', '46086', '46275'] }, //33.382040, -117.588630
+    { name: 'Pipeline', lat: 21.6654, lon: -158.0521, ndbc: ['51001', '51208', '51201'] },
   ];
 
-  const handleLocationSelect = (lat: number, lon: number) => {
-    // Navigate directly to the URL with the coordinates
-    window.location.href = `?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`;
+  const handleLocationSelect = (lat: number, lon: number, name: string, ndbc?: string[]) => {
+    if (ndbc) {
+      // comma separated list of NDBC stations
+      window.location.href = `?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&ndbc=${ndbc.join(',')}`;
+    } else {
+      window.location.href = `?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`;
+    }
   };
 
   return (
@@ -124,7 +130,7 @@ const LocationInput: React.FC<LocationInputProps> = ({ manualLat, manualLon, loc
         <p>Or here are some popular locations:</p>
         <LocationsList>
           {popularLocations.map((location) => (
-            <LocationButton key={location.name} onClick={() => handleLocationSelect(location.lat, location.lon)}>
+            <LocationButton key={location.name} onClick={() => handleLocationSelect(location.lat, location.lon, location.name, location.ndbc)}>
               {location.name}
             </LocationButton>
           ))}

@@ -249,8 +249,16 @@ const AppContent: React.FC = () => {
       // NDBC stations
       setNdbcLoading(true);
       try {
-        const ndbcStationsResult = ndbcParam ? await fetchSpecificNDBCStations(ndbcParam.split(','), latitude, longitude) : await getClosestStations(latitude, longitude);
-        setNdbcStations(ndbcStationsResult);
+        if (ndbcParam) {
+          const requestedStationIds = ndbcParam.split(',');
+          const ndbcStationsResult = await fetchSpecificNDBCStations(requestedStationIds, latitude, longitude);
+          // Sort the stations to match the order in the URL parameter
+          const sortedStations = requestedStationIds.map((id) => ndbcStationsResult.find((station) => station.id === id)).filter((station): station is NDBCStation => station !== undefined);
+          setNdbcStations(sortedStations);
+        } else {
+          const ndbcStationsResult = await getClosestStations(latitude, longitude);
+          setNdbcStations(ndbcStationsResult);
+        }
       } catch (e) {
         setNdbcError(`Failed to fetch NDBC stations: ${e instanceof Error ? e.message : String(e)}`);
       } finally {
