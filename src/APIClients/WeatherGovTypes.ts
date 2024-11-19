@@ -95,6 +95,11 @@ export interface SRFData {
   timestamp: string;
 }
 
+export interface CWFData {
+  text: string;
+  timestamp: string;
+}
+
 export interface StationData {
   current: CurrentConditionsAPIResponse;
   historical: HistoricalConditionsAPIResponse;
@@ -108,4 +113,5 @@ export interface WeatherData {
   cwa: string;
   afd: AFDData;
   srf: SRFData;
+  cwf: CWFData;
 }

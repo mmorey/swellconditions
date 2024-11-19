@@ -22,6 +22,7 @@ import { calculateDistance, getDirection } from './utils';
 import SatelliteViewer from './components/SatelliteViewer';
 import AFD from './components/AFD';
 import SRF from './components/SRF';
+import CWF from './components/CWF';
 import VideoPlayer from './components/VideoPlayer';
 import LocationInput from './components/LocationInput';
 
@@ -373,6 +374,7 @@ const AppContent: React.FC = () => {
           <WindGraph weatherData={weatherData} />
           {weatherData.afd && <AFD afd={weatherData.afd.text} wfo={weatherData.cwa} timestamp={weatherData.afd.timestamp} />}
           {weatherData.srf && <SRF srf={weatherData.srf.text} wfo={weatherData.cwa} timestamp={weatherData.srf.timestamp} simpleFormat={true} />}
+          {weatherData.cwf && <CWF cwf={weatherData.cwf.text} wfo={weatherData.cwa} timestamp={weatherData.cwf.timestamp} simpleFormat={true} />}
           <SatelliteViewer weatherOfficeCode={weatherData.cwa} />
         </>
       )}

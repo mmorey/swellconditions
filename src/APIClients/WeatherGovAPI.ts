@@ -1,4 +1,4 @@
-import { WeatherGovAPIResponse, ForecastGridDataAPIResponse, WeatherData, AFDData, SRFData, StationData } from './WeatherGovTypes';
+import { WeatherGovAPIResponse, ForecastGridDataAPIResponse, WeatherData, AFDData, SRFData, CWFData, StationData } from './WeatherGovTypes';
 import { parseISO8601Duration } from '../utils';
 
 const headers = {
@@ -22,16 +22,17 @@ const fetchWithRetry = async (url: string, options: RequestInit, retries = 3, de
   }
 };
 
-const fetchAFDAndSRF = async (cwa: string): Promise<{ afd: AFDData; srf: SRFData }> => {
-  const productsResponse = await fetchWithRetry(`https://api.weather.gov/products?location=${cwa}&type=AFD,SRF`, { headers });
+const fetchForecasts = async (cwa: string): Promise<{ afd: AFDData; srf: SRFData; cwf: CWFData }> => {
+  const productsResponse = await fetchWithRetry(`https://api.weather.gov/products?location=${cwa}&type=AFD,SRF,CWF`, { headers });
   if (!productsResponse.ok) {
     throw new Error(`HTTP error! status: ${productsResponse.status}`);
   }
   const productsData = await productsResponse.json();
 
-  // Find most recent AFD and SRF
+  // Find most recent AFD, SRF, and CWF
   let latestAFD = null;
   let latestSRF = null;
+  let latestCWF = null;
 
   for (const product of productsData['@graph']) {
     if (product.productCode === 'AFD' && (!latestAFD || new Date(product.issuanceTime) > new Date(latestAFD.issuanceTime))) {
@@ -39,6 +40,9 @@ const fetchAFDAndSRF = async (cwa: string): Promise<{ afd: AFDData; srf: SRFData
     }
     if (product.productCode === 'SRF' && (!latestSRF || new Date(product.issuanceTime) > new Date(latestSRF.issuanceTime))) {
       latestSRF = product;
+    }
+    if (product.productCode === 'CWF' && (!latestCWF || new Date(product.issuanceTime) > new Date(latestCWF.issuanceTime))) {
+      latestCWF = product;
     }
   }
 
@@ -48,15 +52,22 @@ const fetchAFDAndSRF = async (cwa: string): Promise<{ afd: AFDData; srf: SRFData
   if (!latestSRF) {
     throw new Error('No SRF product found');
   }
+  if (!latestCWF) {
+    throw new Error('No CWF product found');
+  }
 
-  // Fetch the actual content for both products
-  const [afdResponse, srfResponse] = await Promise.all([fetchWithRetry(latestAFD['@id'], { headers }), fetchWithRetry(latestSRF['@id'], { headers })]);
+  // Fetch the actual content for all products
+  const [afdResponse, srfResponse, cwfResponse] = await Promise.all([
+    fetchWithRetry(latestAFD['@id'], { headers }),
+    fetchWithRetry(latestSRF['@id'], { headers }),
+    fetchWithRetry(latestCWF['@id'], { headers }),
+  ]);
 
-  if (!afdResponse.ok || !srfResponse.ok) {
+  if (!afdResponse.ok || !srfResponse.ok || !cwfResponse.ok) {
     throw new Error('Failed to fetch product content');
   }
 
-  const [afdData, srfData] = await Promise.all([afdResponse.json(), srfResponse.json()]);
+  const [afdData, srfData, cwfData] = await Promise.all([afdResponse.json(), srfResponse.json(), cwfResponse.json()]);
 
   return {
     afd: {
@@ -66,6 +77,10 @@ const fetchAFDAndSRF = async (cwa: string): Promise<{ afd: AFDData; srf: SRFData
     srf: {
       text: srfData.productText || '',
       timestamp: srfData.issuanceTime || '',
+    },
+    cwf: {
+      text: cwfData.productText || '',
+      timestamp: cwfData.issuanceTime || '',
     },
   };
 };
@@ -84,7 +99,7 @@ export const fetchWeatherData = async (latitude: number, longitude: number, nwss
   const data: WeatherGovAPIResponse = await response.json();
   const forecast = await fetchForecastData(data.properties.forecastGridData);
   const stations = await fetchObservations(data.properties.observationStations, nwsstation);
-  const { afd, srf } = await fetchAFDAndSRF(data.properties.cwa);
+  const { afd, srf, cwf } = await fetchForecasts(data.properties.cwa);
 
   return {
     stations,
@@ -94,6 +109,7 @@ export const fetchWeatherData = async (latitude: number, longitude: number, nwss
     cwa: data.properties.cwa,
     afd,
     srf,
+    cwf,
   };
 };
 
