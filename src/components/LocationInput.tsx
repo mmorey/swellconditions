@@ -90,26 +90,24 @@ const LocationInput: React.FC<LocationInputProps> = ({ manualLat, manualLon, loc
     { name: 'New Smyrna Beach', lat: 29.071, lon: -80.9089, ndbc: ['41002', '41010', '41070'] }, //29.070984, -80.908929
     { name: 'Malibu', lat: 34.0259, lon: -118.7798, ndbc: ['46232', '46221', '46268'] },
     { name: 'Lower Trestles', lat: 33.382, lon: -117.5886, ndbc: ['46232', '46086', '46275'] }, //33.382040, -117.588630
+    { name: 'Blacks', lat: 32.8786, lon: -117.253, ndbc: ['46232', '46225', '46254'] }, //32.878588, -117.252951
     { name: 'Pipeline', lat: 21.6654, lon: -158.0521, ndbc: ['51001', '51208', '51201'] },
   ];
 
-  const handleLocationSelect = (lat: number, lon: number, ndbc?: string[]) => {
+  const handleLocationSelect = (name: string, lat: number, lon: number, ndbc?: string[]) => {
     if (ndbc) {
       // comma separated list of NDBC stations
-      window.location.href = `?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}&ndbc=${ndbc.join(',')}`;
+      window.location.href = `?name=${name}&lat=${lat}&lon=${lon}&ndbc=${ndbc.join(',')}`;
     } else {
-      window.location.href = `?lat=${lat.toFixed(4)}&lon=${lon.toFixed(4)}`;
+      window.location.href = `?name=${name}&lat=${lat}&lon=${lon}`;
     }
   };
 
   return (
     <LocationInputContainer>
       <Description>
-        <p>
-          SwellConditions.com provides comprehensive marine weather data including wave heights, wind conditions, tides, and water temperatures for any coastal location. To provide you with accurate
-          local conditions, we need your location coordinates.
-        </p>
-        <p>The simplest way to get started is to click "Use My Location" below, which will automatically detect your coordinates.</p>
+        <p>SwellConditions.com provides relevant surf conditions for coastal USA locations. To provide you with accurate local conditions, we need your location coordinates.</p>
+        <p>The simplest way to get started is to click "Use My Location" below, which will automatically detect your location.</p>
       </Description>
 
       <CoordinateInputGroup>
@@ -130,7 +128,7 @@ const LocationInput: React.FC<LocationInputProps> = ({ manualLat, manualLon, loc
         <p>Or here are some popular locations:</p>
         <LocationsList>
           {popularLocations.map((location) => (
-            <LocationButton key={location.name} onClick={() => handleLocationSelect(location.lat, location.lon, location.ndbc)}>
+            <LocationButton key={location.name} onClick={() => handleLocationSelect(location.name, location.lat, location.lon, location.ndbc)}>
               {location.name}
             </LocationButton>
           ))}

@@ -126,6 +126,7 @@ const AppContent: React.FC = () => {
   const navigate = useNavigate();
   const urlLat = searchParams.get('lat');
   const urlLon = searchParams.get('lon');
+  const name = searchParams.get('name');
 
   const [manualLat, setManualLat] = useState('');
   const [manualLon, setManualLon] = useState('');
@@ -329,7 +330,7 @@ const AppContent: React.FC = () => {
           <SettingsIcon src="/settings.svg" alt="Settings" />
         </TitleContainer>
         <LocationInfo>
-          {weatherData ? `${weatherData.city}, ${weatherData.state}` : 'Loading...'} ({latitude}, {longitude})
+          {name ? name : weatherData ? `${weatherData.city}, ${weatherData.state}` : 'Loading...'} ({latitude}, {longitude})
         </LocationInfo>
       </HeaderContainer>
 
