@@ -374,7 +374,7 @@ const AppContent: React.FC = () => {
           <WindGraph weatherData={weatherData} />
           {weatherData.afd && <AFD afd={weatherData.afd.text} wfo={weatherData.cwa} timestamp={weatherData.afd.timestamp} />}
           {weatherData.srf && <SRF srf={weatherData.srf.text} wfo={weatherData.cwa} timestamp={weatherData.srf.timestamp} simpleFormat={true} />}
-          {weatherData.cwf && <CWF cwf={weatherData.cwf.text} wfo={weatherData.cwa} timestamp={weatherData.cwf.timestamp} simpleFormat={true} />}
+          {weatherData.cwf && <CWF cwf={weatherData.cwf.text} wfo={weatherData.cwa} timestamp={weatherData.cwf.timestamp} simpleFormat={false} />}
           <SatelliteViewer weatherOfficeCode={weatherData.cwa} />
         </>
       )}

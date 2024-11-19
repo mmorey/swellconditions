@@ -31,17 +31,17 @@ const ContentContainer = styled.div`
   }
 
   p {
-    margin: 0;
-    font-size: 0.85rem;
-    line-height: 1.4;
     color: ${(props) => props.theme.colors.text.primary};
+    margin: 0.5rem 0;
+    line-height: 1.5;
+    font-size: 0.9rem;
   }
 
   ul {
     margin: 0.5rem 0;
     padding-left: 2rem;
-    font-size: 0.85rem;
-    line-height: 1.4;
+    font-size: 0.9rem;
+    line-height: 1.5;
     color: ${(props) => props.theme.colors.text.primary};
   }
 
@@ -52,13 +52,38 @@ const ContentContainer = styled.div`
   }
 
   pre {
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    margin: 0.5rem 0;
     font-family: monospace;
-    white-space: pre;
-    overflow-x: auto;
     font-size: 0.85rem;
     line-height: 1.4;
     color: ${(props) => props.theme.colors.text.primary};
-    margin: 0;
+    background-color: ${(props) => props.theme.colors.backgroundDark};
+    padding: 0.5rem;
+    border-radius: 4px;
+  }
+
+  .synopsis {
+    margin: 1rem 0;
+    padding: 0.5rem;
+    background-color: ${(props) => props.theme.colors.backgroundDark};
+    border-radius: 4px;
+  }
+
+  .location {
+    font-weight: bold;
+    color: ${(props) => props.theme.colors.text.secondary};
+  }
+
+  .forecast-date {
+    color: ${(props) => props.theme.colors.text.secondary};
+    font-size: 0.8rem;
+  }
+
+  .sub-forecast {
+    margin: 0.5rem 0;
+    padding-left: 1rem;
   }
 `;
 
@@ -111,12 +136,185 @@ const Title = styled.h2`
   margin: 0;
 `;
 
+interface SubForecast {
+  timeframe: string;
+  forecast_text: string;
+}
+
+interface ForecastSection {
+  code: string;
+  location: string;
+  forecast_date: string;
+  is_updated: boolean;
+  advisories: string[];
+  sub_forecasts: SubForecast[];
+  raw: string;
+}
+
+interface ParsedCWF {
+  preamble: string;
+  synopsis: string;
+  forecasts: ForecastSection[];
+}
+
 interface CWFProps {
   cwf: string;
   wfo: string;
   timestamp: string;
   simpleFormat?: boolean;
 }
+
+const getSynopsis = (text: string): string => {
+  const synopsisMatch = text.match(/synopsis([\s\S]*?)\$\$/i);
+  if (!synopsisMatch) return '';
+
+  let synopsis = synopsisMatch[1];
+  const parts = synopsis.split('...');
+
+  if (parts.length > 1) {
+    synopsis = parts.slice(1).join('...');
+  } else {
+    const lines = synopsis.split('\n');
+    if (lines.length > 1) {
+      synopsis = lines.slice(1).join(' ');
+    }
+  }
+
+  return synopsis.replace(/\n/g, ' ').trim();
+};
+
+const parseForecastSection = (section: string): ForecastSection | null => {
+  const lines = section
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line);
+  if (lines.length === 0) return null;
+
+  const result: ForecastSection = {
+    code: '',
+    location: '',
+    forecast_date: '',
+    is_updated: false,
+    advisories: [],
+    sub_forecasts: [],
+    raw: section,
+  };
+
+  let currentIndex = 0;
+  let codeLines = [];
+
+  // Parse code
+  while (currentIndex < lines.length && !lines[currentIndex].endsWith('-')) {
+    codeLines.push(lines[currentIndex].replace(/-$/, '').trim());
+    currentIndex++;
+  }
+  if (currentIndex < lines.length) {
+    codeLines.push(lines[currentIndex].replace(/-$/, '').trim());
+    currentIndex++;
+  }
+  result.code = codeLines.join(' ');
+
+  // Parse location
+  let locationLines = [];
+  while (currentIndex < lines.length && !lines[currentIndex].endsWith('-')) {
+    locationLines.push(lines[currentIndex].replace(/-$/, '').trim());
+    currentIndex++;
+  }
+  if (currentIndex < lines.length) {
+    locationLines.push(lines[currentIndex].replace(/-$/, '').trim());
+    currentIndex++;
+  }
+  result.location = locationLines.join(' ');
+
+  // Parse forecast date
+  if (currentIndex < lines.length) {
+    result.forecast_date = lines[currentIndex];
+    currentIndex++;
+  }
+
+  // Check for UPDATED flag
+  if (currentIndex < lines.length && lines[currentIndex] === 'UPDATED') {
+    result.is_updated = true;
+    currentIndex++;
+  }
+
+  // Parse remaining content
+  let currentAdvisory: string[] = [];
+  let currentSubForecast: SubForecast | null = null;
+
+  while (currentIndex < lines.length) {
+    const line = lines[currentIndex];
+
+    // Handle advisories
+    if (line.startsWith('...')) {
+      if (currentAdvisory.length > 0 && line.endsWith('...')) {
+        currentAdvisory.push(line.replace(/\.\.\./g, '').trim());
+        result.advisories.push(currentAdvisory.join(' '));
+        currentAdvisory = [];
+      } else {
+        currentAdvisory.push(line.replace(/\.\.\./g, '').trim());
+      }
+    }
+    // Handle sub-forecasts
+    else if (line.startsWith('.')) {
+      const parts = line.substring(1).split('...');
+      if (parts.length === 2) {
+        if (currentSubForecast) {
+          result.sub_forecasts.push(currentSubForecast);
+        }
+        currentSubForecast = {
+          timeframe: parts[0].trim(),
+          forecast_text: parts[1].trim(),
+        };
+      } else if (currentSubForecast) {
+        currentSubForecast.forecast_text += ' ' + line.trim();
+      }
+    }
+    // Add to current sub-forecast if exists
+    else if (currentSubForecast) {
+      currentSubForecast.forecast_text += ' ' + line.trim();
+    }
+
+    currentIndex++;
+  }
+
+  // Add final sub-forecast if exists
+  if (currentSubForecast) {
+    result.sub_forecasts.push(currentSubForecast);
+  }
+
+  return result;
+};
+
+const parseCWF = (text: string): ParsedCWF => {
+  // Remove carriage returns and get initial lines
+  const cleanText = text.replace(/\r/g, '');
+
+  // Split into main sections
+  const sections = cleanText.split('$$');
+
+  // Get preamble (first section)
+  const preamble = sections[0]
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line) => line && line !== '000')
+    .join('\n');
+
+  // Get synopsis
+  const synopsis = getSynopsis(cleanText);
+
+  // Parse forecast sections
+  const forecasts = sections
+    .slice(1)
+    .map((section) => parseForecastSection(section))
+    .filter((section): section is ForecastSection => section !== null);
+
+  return {
+    preamble,
+    synopsis,
+    forecasts,
+  };
+};
 
 const CWF: React.FC<CWFProps> = ({ cwf, wfo, timestamp, simpleFormat = false }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -126,100 +324,51 @@ const CWF: React.FC<CWFProps> = ({ cwf, wfo, timestamp, simpleFormat = false }) 
     const formatCWF = () => {
       // If simpleFormat is true, just wrap in pre tag
       if (simpleFormat) {
-        // Remove any carriage returns and first 8 lines
         const cleanedText = cwf.replace(/\r/g, '').split('\n').slice(8).join('\n');
         setFormattedContent(<pre>{cleanedText}</pre>);
         return;
       }
 
-      // Remove any carriage returns
-      const cleanedText = cwf.replace(/\r/g, '');
+      const parsed = parseCWF(cwf);
 
-      // Split into lines
-      const lines = cleanedText.split('\n');
+      const content = (
+        <div>
+          {parsed.synopsis && (
+            <div className="synopsis">
+              <strong>Synopsis: </strong>
+              {parsed.synopsis}
+            </div>
+          )}
 
-      let lineCount = 0;
-      let inBulletList = false;
-      let currentBulletList: string[] = [];
+          {parsed.forecasts.map((forecast, index) => (
+            <div key={index}>
+              <div className="location">{forecast.location}</div>
+              <div className="forecast-date">{forecast.forecast_date}</div>
 
-      // Process each line
-      const formattedLines = lines
-        .map((line, index) => {
-          lineCount++;
+              {forecast.is_updated && (
+                <p>
+                  <em>Updated</em>
+                </p>
+              )}
 
-          // Skip the first 8 lines
-          if (lineCount <= 8) {
-            return null;
-          }
+              {forecast.advisories.map((advisory, idx) => (
+                <p key={idx} className="warning">
+                  {advisory}
+                </p>
+              ))}
 
-          // Check for warning pattern
-          const warningMatch = line.match(/\.\.\.([A-Z\s]+(?:RISK|WARNING|ADVISORY))\.\.\.$/);
-          if (warningMatch) {
-            const warning = warningMatch[1]
-              .toLowerCase()
-              .split(' ')
-              .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-              .join(' ');
-            return `<p class="warning">Warning: ${warning}</p>`;
-          }
+              {forecast.sub_forecasts.map((subForecast, idx) => (
+                <div key={idx} className="sub-forecast">
+                  <h3>{subForecast.timeframe}</h3>
+                  <p>{subForecast.forecast_text}</p>
+                </div>
+              ))}
+            </div>
+          ))}
+        </div>
+      );
 
-          // Convert .WORD... pattern to heading
-          const headingMatch = line.match(/^\.([\w\s]+)\.\.\.$/);
-          if (headingMatch) {
-            // If we were in a bullet list, close it before the heading
-            if (inBulletList) {
-              const list = `<ul>${currentBulletList.join('')}</ul>`;
-              currentBulletList = [];
-              inBulletList = false;
-              return list + `<h2>${headingMatch[1].toLowerCase()}</h2>`;
-            }
-            return `<h2>${headingMatch[1].toLowerCase()}</h2>`;
-          }
-
-          // Skip empty lines and lines with just &&
-          if (line.trim() === '' || line.trim() === '&&') {
-            // If we were in a bullet list, close it before the empty line
-            if (inBulletList) {
-              const list = `<ul>${currentBulletList.join('')}</ul>`;
-              currentBulletList = [];
-              inBulletList = false;
-              return list;
-            }
-            return null;
-          }
-
-          // Handle bullet points
-          const bulletMatch = line.match(/^\s*\*\s*(.+)$/);
-          if (bulletMatch) {
-            inBulletList = true;
-            currentBulletList.push(`<li>${bulletMatch[1]}</li>`);
-
-            // If this is the last line or the next line doesn't start with *, output the list
-            if (index === lines.length - 1 || !lines[index + 1].trim().startsWith('*')) {
-              const list = `<ul>${currentBulletList.join('')}</ul>`;
-              currentBulletList = [];
-              inBulletList = false;
-              return list;
-            }
-            return null;
-          }
-
-          // Convert Key............Value format to Key: Value
-          const keyValueMatch = line.match(/^([^\.]+)\.+\s*([^\.]+)\.?$/);
-          if (keyValueMatch) {
-            const [, key, value] = keyValueMatch;
-            // Remove any trailing asterisks from the key
-            const cleanKey = key.replace(/\*+$/, '').trim();
-            return `<p>${cleanKey}: ${value.trim()}</p>`;
-          }
-
-          // Wrap any remaining lines in paragraph tags
-          return `<p>${line}</p>`;
-        })
-        .filter((line) => line !== null) // Remove null lines
-        .join('');
-
-      setFormattedContent(<div dangerouslySetInnerHTML={{ __html: formattedLines }} />);
+      setFormattedContent(content);
     };
 
     formatCWF();
